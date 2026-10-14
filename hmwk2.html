@@ -6,48 +6,127 @@
 <title>HMWK 2 - Wallet Seed to Ethereum Address</title>
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/js-sha3@0.9.3/build/sha3.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&display=swap" rel="stylesheet">
 <style>
-  body { font-family: system-ui, sans-serif; max-width: 960px; margin: 0 auto; padding: 16px; color: #222; line-height: 1.55; }
-  h1 { font-size: 1.6rem; margin-bottom: 4px; }
-  h2 { font-size: 1.25rem; border-bottom: 2px solid #3b5bdb; padding-bottom: 4px; margin-top: 40px; }
-  h3 { font-size: 1.05rem; margin-top: 22px; }
-  a { color: #3b5bdb; }
-  .note { color: #555; font-size: .92rem; }
-  .warn { background: #fff4e6; border-left: 3px solid #e8590c; padding: 8px 12px; }
-  .controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 12px 0; }
-  input, button { font: inherit; padding: 5px 10px; }
-  button { cursor: pointer; }
-  code, .mono { font-family: ui-monospace, Consolas, monospace; font-size: .86rem; }
-  table { border-collapse: collapse; width: 100%; font-size: .9rem; margin: 8px 0; }
-  th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; vertical-align: top; }
-  th { background: #f4f5f8; }
-  td.mono { word-break: break-all; }
-  .tag { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: .75rem; font-weight: 600; white-space: nowrap; }
-  .gen { background: #ffe3e3; color: #a51111; }
-  .der { background: #e7f5ff; color: #1864ab; }
-  .pk  { background: #f3f0ff; color: #5f3dc4; }
-  .hash{ background: #e6fcf5; color: #087f5b; }
-  .chk { background: #fff9db; color: #8a6d00; }
-  .enc { background: #f1f3f5; color: #495057; }
-  .pipe { display: flex; flex-direction: column; align-items: center; gap: 2px; margin: 12px 0; }
-  .pipe .box { border: 1px solid #bbb; border-radius: 6px; padding: 4px 14px; background: #fafbfc; font-weight: 600; }
-  .pipe .arrow { font-size: .82rem; color: #555; }
+  :root {
+    --ink: #16213A; --muted: #56627A; --paper: #F7F8FB; --surface: #FFFFFF;
+    --grid: #DCE3EF; --line: #C6D0E2; --cobalt: #2F54C9; --cobalt-d: #22409E;
+    --red: #C2373F; --amber: #E8A33D; --marker: #FFE27A;
+    --serif: "Literata", Georgia, "Times New Roman", serif;
+    --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 17px/1.65 var(--serif); }
+  a { color: var(--cobalt); text-underline-offset: 3px; }
+  a:hover { color: var(--cobalt-d); }
+
+  /* masthead: a sheet of graph paper, like the finite-field grid of the curve */
+  .masthead {
+    background-color: #EEF2F9;
+    background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 26px 26px; border-bottom: 1px solid var(--line);
+  }
+  .wrap { max-width: 1060px; margin: 0 auto; padding: 0 20px; }
+  .masthead .wrap { padding-top: 44px; padding-bottom: 26px; }
+  .course { margin: 0 0 10px; font-style: italic; color: var(--muted); }
+  h1 { margin: 0; font-size: clamp(1.9rem, 4.4vw, 2.9rem); line-height: 1.12; font-weight: 600; max-width: 24ch; letter-spacing: -0.01em; }
+  .lede { margin: 16px 0 0; max-width: 68ch; font-size: 1.06rem; }
+  .toc { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--line); font-size: .93rem; }
+  .toc a { color: var(--ink); text-decoration: none; }
+  .toc a:hover { color: var(--cobalt); text-decoration: underline; }
+  .toc .other { margin-left: auto; color: var(--cobalt); }
+
+  main.wrap { padding-bottom: 80px; }
+  h2 { font-size: 1.6rem; font-weight: 600; line-height: 1.25; margin: 56px 0 16px; padding-top: 26px; border-top: 1px solid var(--line); scroll-margin-top: 16px; }
+  h3 { font-size: 1.15rem; font-weight: 600; margin: 30px 0 8px; }
+  p, li { max-width: 72ch; }
+  ul { padding-left: 1.2em; }
+  li { margin: 6px 0; }
+  b { font-weight: 600; }
+  .note { color: var(--muted); font-size: .94rem; }
+  code, .mono { font-family: var(--mono); font-size: .86em; }
+
+  .formula {
+    display: table; margin: 14px 0; padding: 12px 18px; background: var(--surface);
+    border: 1px solid var(--line); border-left: 3px solid var(--cobalt); border-radius: 4px;
+    font-family: var(--mono); font-size: .9rem; line-height: 1.8;
+  }
+
+  .controls {
+    display: flex; flex-wrap: wrap; gap: 14px 18px; align-items: flex-end; margin: 16px 0;
+    padding: 16px 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+  }
+  label { display: flex; flex-direction: column; gap: 4px; font-size: .88rem; color: var(--muted); }
+  input, select { font: 400 .92rem var(--mono); color: var(--ink); padding: 8px 10px; background: #fff; border: 1px solid #B8C3D6; border-radius: 6px; }
+  button {
+    font: 600 .93rem var(--serif); color: #fff; background: var(--cobalt); border: 1px solid var(--cobalt);
+    padding: 9px 16px; border-radius: 6px; cursor: pointer;
+  }
+  button:hover { background: var(--cobalt-d); border-color: var(--cobalt-d); }
+  button.ghost { background: #fff; color: var(--cobalt); }
+  button.ghost:hover { background: #EEF2F9; }
+  :focus-visible { outline: 2px solid var(--cobalt); outline-offset: 2px; }
+
+  pre {
+    margin: 12px 0; padding: 16px 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+    overflow-x: auto; font: .84rem/1.7 var(--mono);
+  }
+  .key { display: inline-block; margin-top: 4px; padding: 3px 10px; background: var(--marker); color: var(--ink); font-weight: 600; border-radius: 3px; }
+
+  table { border-collapse: collapse; font-size: .9rem; margin: 10px 0; background: var(--surface); }
+  th, td { border: 1px solid var(--grid); padding: 6px 10px; }
+  th { background: #EEF2F9; font-weight: 600; text-align: left; }
+  figure img { display: block; }
+  footer { border-top: 1px solid var(--line); padding: 22px 0 40px; font-size: .9rem; color: var(--muted); }
+  table { display: table; width: 100%; }
+  @media (max-width: 700px) { table { display: block; } }
+  th, td { text-align: left; vertical-align: top; }
+  td.mono { word-break: break-all; font-size: .8rem; }
+  .tag { display: inline-block; padding: 1px 9px; border-radius: 10px; font: 600 .74rem var(--serif); white-space: nowrap; vertical-align: 1px; }
+  .gen { background: #FBE3E4; color: #9B2530; }
+  .der { background: #E3EAFB; color: #22409E; }
+  .pk  { background: #EFE6FB; color: #5B3497; }
+  .hash{ background: #DFF3EC; color: #1C6B52; }
+  .chk { background: #FFF2C7; color: #7A5A00; }
+  .enc { background: #ECEFF4; color: #46526A; }
+  /* the pipeline drawn as a rail: stations (data) and the steps between them */
+  .pipe { position: relative; margin: 20px 0 8px 10px; padding-left: 30px; border-left: 2px solid var(--line); }
+  .pipe .box { position: relative; display: inline-block; padding: 7px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; font-weight: 600; }
+  .pipe .box::before { content: ""; position: absolute; left: -38px; top: 50%; width: 12px; height: 12px; margin-top: -6px; border-radius: 50%; background: var(--cobalt); border: 2px solid var(--paper); }
+  .pipe .box:first-child::before { background: var(--red); }
+  .pipe .box:last-child::before { background: var(--ink); }
+  .pipe .arrow { padding: 10px 0; font-size: .92rem; color: var(--muted); }
   .words { display: flex; flex-wrap: wrap; gap: 6px; }
-  .words div { border: 1px solid #ddd; border-radius: 4px; padding: 2px 6px; font-size: .8rem; text-align: center; }
-  .words small { display: block; color: #777; font-family: ui-monospace, Consolas, monospace; }
-  .up { color: #c0392b; font-weight: bold; }
+  .words div { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 4px 8px; font-size: .86rem; text-align: center; }
+  .words small { display: block; color: var(--muted); font: .72rem var(--mono); }
+  .up { color: var(--red); font-weight: 600; }
+  #shaTable td.mono { font-size: .76rem; }
+  main.wrap > h2:first-child { border-top: 0; margin-top: 40px; padding-top: 0; }
+  select, input { max-width: 100%; }
+  label { min-width: 0; max-width: 100%; }
+  .formula { max-width: 100%; overflow-x: auto; }
+  table { display: block; max-width: 100%; overflow-x: auto; }
+  @media (max-width: 600px) { body { font-size: 16px; } .controls { padding: 12px; } .toc .other { margin-left: 0; } }
 </style>
 </head>
 <body>
 
-<h1>HMWK 2 — From wallet seed to Ethereum address</h1>
-<p class="note">Hashing, key derivation and cryptographic primitives in an Ethereum HD wallet, with their statistical properties.
-   Every value on this page is computed live in the browser (ethers.js).
-   It builds on <a href="hmwk1.html">HMWK 1</a>: step 4 of the pipeline is exactly the scalar multiplication Q = kG implemented there,
-   on the real curve instead of the toy one.</p>
+<header class="masthead">
+  <div class="wrap">
+    <p class="course">Statistics, homework 2, Ludovico Toto</p>
+    <h1>From wallet seed to Ethereum address</h1>
+    <p class="lede">Hashing, key derivation and cryptographic primitives in an Ethereum HD wallet, with their statistical properties. Every value on this page is computed live in the browser (ethers.js). It builds on <a href="hmwk1.html">Homework 1</a>: step 4 of the pipeline is the scalar multiplication Q = kG implemented there, on the real curve instead of the toy one.</p>
+    <nav class="toc" aria-label="Sections"><a href="#s1">1. Pipeline</a><a href="#s2">2. Run it</a><a href="#s3">3. Kinds of operation</a><a href="#s4">4. Standards</a><a href="#s5">5. Statistics</a><a href="#s6">6. History</a><a href="#s7">7. SHA-2 vs Keccak</a><a href="#s8">8. Why several techniques</a><a href="#s9">9. Wallet check</a><a class="other" href="hmwk1.html">Homework 1</a></nav>
+  </div>
+</header>
+<main class="wrap">
 
 <!-- =============================== 1 =============================== -->
-<h2>1. The pipeline</h2>
+<h2 id="s1">1. The pipeline</h2>
 <div class="pipe">
   <div class="box">Random entropy (128 bits)</div>
   <div class="arrow">↓ BIP-39: encode as 12 words + checksum <span class="tag gen">generation</span> <span class="tag enc">encoding</span> <span class="tag chk">checksum</span></div>
@@ -65,7 +144,7 @@
 </div>
 
 <!-- =============================== 2 =============================== -->
-<h2>2. Run the pipeline</h2>
+<h2 id="s2">2. Run the pipeline</h2>
 <div class="controls">
   <label style="flex:1;min-width:280px">Mnemonic <input id="mnemonic" style="width:100%" value="test test test test test test test test test test test junk"></label>
 </div>
@@ -78,7 +157,7 @@
 <div id="pipeline"></div>
 
 <!-- =============================== 3 =============================== -->
-<h2>3. Five different kinds of operation</h2>
+<h2 id="s3">3. Five different kinds of operation</h2>
 <table>
   <tr><th>Concept</th><th>What it is</th><th>Where in the pipeline</th></tr>
   <tr><td><span class="tag gen">Key generation</span></td><td>Creates new secret material from true randomness. Not reproducible; done once.</td><td>The initial entropy of the mnemonic.</td></tr>
@@ -90,7 +169,7 @@
 </table>
 
 <!-- =============================== 4 =============================== -->
-<h2>4. Role of each standard and primitive</h2>
+<h2 id="s4">4. Role of each standard and primitive</h2>
 <ul>
   <li><b>BIP-39</b> — turns 128–256 random bits into 12–24 words from a list of 2048 = 2¹¹ words (11 bits per word). A checksum
       (the first bits of SHA-256 of the entropy) is appended, so a wrong word is usually detected. The words are then stretched into a
@@ -112,7 +191,7 @@
 </ul>
 
 <!-- =============================== 5 =============================== -->
-<h2>5. Statistical properties</h2>
+<h2 id="s5">5. Statistical properties</h2>
 <p>
   The hash-based steps (PBKDF2, HMAC-SHA512, Keccak-256) should behave like random functions: balanced bits, uniform hex digits,
   avalanche effect, unrelated outputs for related inputs. For them these tests are meaningful. secp256k1 instead keeps an algebraic
@@ -127,7 +206,7 @@
 <div id="stats"><p class="note">Click the button (it derives the addresses from the mnemonic above).</p></div>
 
 <!-- =============================== 6 =============================== -->
-<h2>6. Historical context</h2>
+<h2 id="s6">6. Historical context</h2>
 <table>
   <tr><th>Year</th><th>Technology</th><th>Note</th></tr>
   <tr><td>1977</td><td>RSA</td><td>First practical public-key cryptosystem.</td></tr>
@@ -144,7 +223,7 @@
    problems: backup, many accounts from one secret, typo detection.</p>
 
 <!-- =============================== 7 =============================== -->
-<h2>7. SHA-2 / SHA-512 vs Keccak / SHA-3</h2>
+<h2 id="s7">7. SHA-2 / SHA-512 vs Keccak / SHA-3</h2>
 <ul>
   <li><b>SHA-2</b> uses the <b>Merkle–Damgård</b> construction (a compression function applied block by block). It is still secure, but
       vulnerable to length-extension attacks, which is why it is used inside HMAC.</li>
@@ -157,7 +236,7 @@
 <table id="shaTable"></table>
 
 <!-- =============================== 8 =============================== -->
-<h2>8. Why several techniques instead of one?</h2>
+<h2 id="s8">8. Why several techniques instead of one?</h2>
 <p>Each step solves a different problem, and no single primitive has all the required properties:</p>
 <ul>
   <li><b>BIP-39 / BIP-32 / BIP-44 → key management:</b> one human-readable backup, reproducible derivation of many keys, compatibility between wallets.</li>
@@ -169,7 +248,7 @@
 <p>Separating the roles also lets each component be analysed, standardised and, if needed, replaced independently.</p>
 
 <!-- =============================== 9 =============================== -->
-<h2>9. Practical check with a wallet</h2>
+<h2 id="s9">9. Practical check with a wallet</h2>
 <p>
   Importing the test mnemonic <code>test test … junk</code> into MetaMask (in a separate test browser profile) shows as first account
   <code>0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266</code>, the same address computed above with index 0: the wallet follows exactly
@@ -188,7 +267,7 @@
   the cryptographic primitives after it are chain-specific.
 </p>
 
-<h2>Note on how this work was done</h2>
+<h2 id="s10">Note on how this work was done</h2>
 <p class="note">
   An AI assistant (Claude) was used as a tutor and to draft parts of the code and text. I reviewed the content, corrected what
   was wrong or unverified (for example, the description of the wallet check, which now only states what I actually observed),
@@ -196,13 +275,16 @@
   page (section 9).
 </p>
 
-<h2>References</h2>
+<h2 id="s11">References</h2>
 <ul class="note">
   <li>BIP-32, BIP-39, BIP-44 — <a href="https://github.com/bitcoin/bips">github.com/bitcoin/bips</a></li>
   <li>EIP-55 — <a href="https://eips.ethereum.org/EIPS/eip-55">eips.ethereum.org/EIPS/eip-55</a></li>
   <li>NIST FIPS 180-4 (SHA-2), FIPS 202 (SHA-3); SEC 2 (secp256k1 parameters)</li>
   <li>Libraries: <a href="https://docs.ethers.org/v6/">ethers.js v6</a>, js-sha3</li>
 </ul>
+
+</main>
+<footer><div class="wrap">Ludovico Toto, MSc Cybersecurity, Sapienza University of Rome. Source code: <a href="https://github.com/Lurbik/statistics">github.com/Lurbik/statistics</a></div></footer>
 
 <script>
 const E = ethers;

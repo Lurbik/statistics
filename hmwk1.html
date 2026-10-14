@@ -4,40 +4,116 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HMWK 1 - Private Key to Public Key</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&display=swap" rel="stylesheet">
 <style>
-  body { font-family: system-ui, sans-serif; max-width: 960px; margin: 0 auto; padding: 16px; color: #222; line-height: 1.55; }
-  h1 { font-size: 1.6rem; margin-bottom: 4px; }
-  h2 { font-size: 1.25rem; border-bottom: 2px solid #3b5bdb; padding-bottom: 4px; margin-top: 40px; }
-  h3 { font-size: 1.05rem; margin-top: 24px; }
-  a { color: #3b5bdb; }
-  .controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 12px 0; }
-  input, select, button { font: inherit; padding: 5px 10px; }
-  button { cursor: pointer; }
-  pre { background: #f4f5f8; padding: 12px; border-radius: 6px; overflow-x: auto; font-size: .88rem; }
-  .key { font-size: 1.2rem; font-weight: bold; color: #c0392b; }
-  .note { color: #555; font-size: .92rem; }
-  .formula { background: #f4f5f8; border-left: 3px solid #3b5bdb; padding: 6px 12px; font-family: ui-monospace, Consolas, monospace; font-size: .9rem; }
-  .viz { display: grid; grid-template-columns: minmax(0, 500px) 1fr; gap: 20px; align-items: start; }
-  @media (max-width: 800px) { .viz { grid-template-columns: 1fr; } }
-  canvas { width: 100%; height: auto; border: 1px solid #ccc; border-radius: 6px; }
-  .legend span { margin-right: 14px; font-size: .85rem; white-space: nowrap; }
-  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
-  table { border-collapse: collapse; font-size: .88rem; margin: 8px 0; }
-  th, td { border: 1px solid #ddd; padding: 3px 10px; text-align: center; }
-  th { background: #f4f5f8; }
-  .bars { display: flex; align-items: flex-end; gap: 3px; height: 110px; border-bottom: 1px solid #888; max-width: 560px; }
-  .bar { flex: 1; background: #3b5bdb; position: relative; border-radius: 2px 2px 0 0; }
-  .bar span { position: absolute; top: -16px; width: 100%; text-align: center; font-size: .7rem; }
+  :root {
+    --ink: #16213A; --muted: #56627A; --paper: #F7F8FB; --surface: #FFFFFF;
+    --grid: #DCE3EF; --line: #C6D0E2; --cobalt: #2F54C9; --cobalt-d: #22409E;
+    --red: #C2373F; --amber: #E8A33D; --marker: #FFE27A;
+    --serif: "Literata", Georgia, "Times New Roman", serif;
+    --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 17px/1.65 var(--serif); }
+  a { color: var(--cobalt); text-underline-offset: 3px; }
+  a:hover { color: var(--cobalt-d); }
+
+  /* masthead: a sheet of graph paper, like the finite-field grid of the curve */
+  .masthead {
+    background-color: #EEF2F9;
+    background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 26px 26px; border-bottom: 1px solid var(--line);
+  }
+  .wrap { max-width: 1060px; margin: 0 auto; padding: 0 20px; }
+  .masthead .wrap { padding-top: 44px; padding-bottom: 26px; }
+  .course { margin: 0 0 10px; font-style: italic; color: var(--muted); }
+  h1 { margin: 0; font-size: clamp(1.9rem, 4.4vw, 2.9rem); line-height: 1.12; font-weight: 600; max-width: 24ch; letter-spacing: -0.01em; }
+  .lede { margin: 16px 0 0; max-width: 68ch; font-size: 1.06rem; }
+  .toc { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--line); font-size: .93rem; }
+  .toc a { color: var(--ink); text-decoration: none; }
+  .toc a:hover { color: var(--cobalt); text-decoration: underline; }
+  .toc .other { margin-left: auto; color: var(--cobalt); }
+
+  main.wrap { padding-bottom: 80px; }
+  h2 { font-size: 1.6rem; font-weight: 600; line-height: 1.25; margin: 56px 0 16px; padding-top: 26px; border-top: 1px solid var(--line); scroll-margin-top: 16px; }
+  h3 { font-size: 1.15rem; font-weight: 600; margin: 30px 0 8px; }
+  p, li { max-width: 72ch; }
+  ul { padding-left: 1.2em; }
+  li { margin: 6px 0; }
+  b { font-weight: 600; }
+  .note { color: var(--muted); font-size: .94rem; }
+  code, .mono { font-family: var(--mono); font-size: .86em; }
+
+  .formula {
+    display: table; margin: 14px 0; padding: 12px 18px; background: var(--surface);
+    border: 1px solid var(--line); border-left: 3px solid var(--cobalt); border-radius: 4px;
+    font-family: var(--mono); font-size: .9rem; line-height: 1.8;
+  }
+
+  .controls {
+    display: flex; flex-wrap: wrap; gap: 14px 18px; align-items: flex-end; margin: 16px 0;
+    padding: 16px 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+  }
+  label { display: flex; flex-direction: column; gap: 4px; font-size: .88rem; color: var(--muted); }
+  input, select { font: 400 .92rem var(--mono); color: var(--ink); padding: 8px 10px; background: #fff; border: 1px solid #B8C3D6; border-radius: 6px; }
+  button {
+    font: 600 .93rem var(--serif); color: #fff; background: var(--cobalt); border: 1px solid var(--cobalt);
+    padding: 9px 16px; border-radius: 6px; cursor: pointer;
+  }
+  button:hover { background: var(--cobalt-d); border-color: var(--cobalt-d); }
+  button.ghost { background: #fff; color: var(--cobalt); }
+  button.ghost:hover { background: #EEF2F9; }
+  :focus-visible { outline: 2px solid var(--cobalt); outline-offset: 2px; }
+
+  pre {
+    margin: 12px 0; padding: 16px 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+    overflow-x: auto; font: .84rem/1.7 var(--mono);
+  }
+  .key { display: inline-block; margin-top: 4px; padding: 3px 10px; background: var(--marker); color: var(--ink); font-weight: 600; border-radius: 3px; }
+
+  table { border-collapse: collapse; font-size: .9rem; margin: 10px 0; background: var(--surface); }
+  th, td { border: 1px solid var(--grid); padding: 6px 10px; }
+  th { background: #EEF2F9; font-weight: 600; text-align: left; }
+  figure img { display: block; }
+  footer { border-top: 1px solid var(--line); padding: 22px 0 40px; font-size: .9rem; color: var(--muted); }
+  .viz { display: grid; grid-template-columns: minmax(0, 520px) 1fr; gap: 26px; align-items: start; }
+  @media (max-width: 820px) { .viz { grid-template-columns: minmax(0, 1fr); } }
+  .viz .controls { margin-top: 0; }
+  canvas { width: 100%; height: auto; background: #fff; border: 1px solid var(--line); border-radius: 8px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 10px; font-size: .84rem; color: var(--muted); }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+  #stepTitle { font-size: 1.02rem; }
+  #stats table td { text-align: center; font-family: var(--mono); font-size: .82rem; }
+  .bars { display: flex; align-items: flex-end; gap: 3px; height: 120px; border-bottom: 1px solid var(--ink); max-width: 560px; padding-top: 18px; }
+  .bar { flex: 1; background: var(--cobalt); position: relative; border-radius: 2px 2px 0 0; min-height: 0; }
+  .bar span { position: absolute; top: -17px; width: 100%; text-align: center; font: .7rem var(--mono); }
   .labels { display: flex; gap: 3px; max-width: 560px; }
-  .labels div { flex: 1; text-align: center; font-size: .7rem; color: #666; }
-  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-  @media (max-width: 800px) { .grid2 { grid-template-columns: 1fr; } }
+  .labels div { flex: 1; text-align: center; font: .68rem var(--mono); color: var(--muted); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  @media (max-width: 820px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+  main.wrap > h2:first-child { border-top: 0; margin-top: 40px; padding-top: 0; }
+  select, input { max-width: 100%; }
+  label { min-width: 0; max-width: 100%; }
+  .formula { max-width: 100%; overflow-x: auto; }
+  table { display: block; max-width: 100%; overflow-x: auto; }
+  @media (max-width: 600px) { body { font-size: 16px; } .controls { padding: 12px; } .toc .other { margin-left: 0; } }
 </style>
 </head>
 <body>
 
-<h1>HMWK 1 — Private key → Public key with elliptic-curve scalar multiplication</h1>
-<p class="note">Toy version of what Ethereum does with the curve secp256k1. Educational only: this curve has 18 points and offers no security.</p>
+<header class="masthead">
+  <div class="wrap">
+    <p class="course">Statistics, homework 1, Ludovico Toto</p>
+    <h1>Private key to public key with elliptic-curve scalar multiplication</h1>
+    <p class="lede">A toy version of what Ethereum does with the curve secp256k1: the curve y² = x³ + 7 over the integers mod 17, computed step by step. Educational only: this curve has 18 points and offers no security.</p>
+    <nav class="toc" aria-label="Sections"><a href="#s1">1. The idea</a><a href="#s2">2. Compute the public key</a><a href="#s3">3. Visualisation</a><a href="#s4">4. Statistics</a><a href="#s5">5. Discussion</a><a class="other" href="hmwk2.html">Homework 2</a></nav>
+  </div>
+</header>
+<main class="wrap">
 
 <!-- =============================== 1 =============================== -->
 <h2 id="s1">1. The idea</h2>
@@ -99,19 +175,19 @@
   <div>
     <canvas id="canvas" width="500" height="500"></canvas>
     <div class="legend">
-      <span><i class="dot" style="background:#c8ccd6"></i>curve point</span>
-      <span><i class="dot" style="background:#f59f00"></i>line through P, Q</span>
-      <span><i class="dot" style="border:2px solid #3b5bdb"></i>P, Q</span>
-      <span><i class="dot" style="border:2px dashed #c0392b"></i>−R</span>
-      <span><i class="dot" style="background:#c0392b"></i>R = P + Q</span>
-      <span><i class="dot" style="background:#91a7ff"></i>points already computed</span>
+      <span><i class="dot" style="background:#B9C3D6"></i>curve point</span>
+      <span><i class="dot" style="background:#E8A33D"></i>line through P, Q</span>
+      <span><i class="dot" style="border:2px solid #2F54C9"></i>P, Q</span>
+      <span><i class="dot" style="border:2px dashed #C2373F"></i>−R</span>
+      <span><i class="dot" style="background:#C2373F"></i>R = P + Q</span>
+      <span><i class="dot" style="background:#8FA6E8"></i>points already computed</span>
     </div>
   </div>
   <div>
     <div class="controls">
-      <button id="prevBtn">◀ Prev</button>
+      <button class="ghost" id="prevBtn">◀ Prev</button>
       <button id="playBtn">▶ Play</button>
-      <button id="nextBtn">Next ▶</button>
+      <button class="ghost" id="nextBtn">Next ▶</button>
     </div>
     <div id="stepTitle"><b></b></div>
     <pre id="stepText"></pre>
@@ -196,6 +272,9 @@
   (x₂ − x₁)⁻¹, and statements in the discussion that were not supported by the measured values. I verified the main computations
   by hand: 2G = (2, 10), 3G = (5, 9), 6G = 2·3G = (5, 8).
 </p>
+
+</main>
+<footer><div class="wrap">Ludovico Toto, MSc Cybersecurity, Sapienza University of Rome. Source code: <a href="https://github.com/Lurbik/statistics">github.com/Lurbik/statistics</a></div></footer>
 
 <script>
 // =====================================================================
@@ -362,18 +441,24 @@ function circle(P, r, fill, stroke, dashed) {
   if (stroke) { ctx.setLineDash(dashed ? [3, 3] : []); ctx.lineWidth = 2.5; ctx.strokeStyle = stroke; ctx.stroke(); ctx.setLineDash([]); }
 }
 function label(P, txt, color) {
-  ctx.fillStyle = color; ctx.font = "bold 13px sans-serif"; ctx.fillText(txt, px(P.x) + 9, py(P.y) - 9);
+  ctx.fillStyle = color; ctx.font = "600 13px Literata, Georgia, serif"; ctx.fillText(txt, px(P.x) + 9, py(P.y) - 9);
 }
 
 function drawStep() {
   const s = anim.steps[anim.i];
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.font = "11px sans-serif"; ctx.fillStyle = "#888";
+  ctx.strokeStyle = "#E6EBF4"; ctx.lineWidth = 1;                    // graph-paper grid
+  for (let i = 0; i < p; i++) {
+    ctx.beginPath(); ctx.moveTo(px(i), py(0)); ctx.lineTo(px(i), py(p - 1)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px(0), py(i)); ctx.lineTo(px(p - 1), py(i)); ctx.stroke();
+  }
+  ctx.font = "11px 'JetBrains Mono', monospace"; ctx.fillStyle = "#8A94A8";
   for (let i = 0; i < p; i++) {                                     // axes 0..16
     ctx.fillText(i, px(i) - 4, canvas.height - M + 18);
     ctx.fillText(i, 6, py(i) + 4);
   }
-  POINTS.forEach(P => circle(P, 4, "#c8ccd6"));                      // all curve points
+  POINTS.forEach(P => circle(P, 4, "#B9C3D6"));                      // all curve points
 
   // path so far: the base point and the results of the previous steps, with their names (2G, 3G, ...)
   const done = new Map();
@@ -386,26 +471,26 @@ function drawStep() {
   done.forEach((names, key) => {
     const [x, y] = key.slice(1, -1).split(", ").map(Number);
     const list = [...names];
-    circle({ x, y }, 5.5, "#91a7ff");
-    ctx.fillStyle = "#4263eb"; ctx.font = "11px sans-serif";
+    circle({ x, y }, 5.5, "#8FA6E8");
+    ctx.fillStyle = "#2F54C9"; ctx.font = "11px 'JetBrains Mono', monospace";
     ctx.fillText(list.slice(0, 3).join(",") + (list.length > 3 ? ",…" : ""), px(x) - 8, py(y) + 18);
   });
 
   if (s.P !== O && s.Q !== O) {
     const l = slope(s.P, s.Q);
     for (let x = 0; x < p; x++) {                                   // the "line" on the finite field
-      if (l === null) { for (let y = 0; y < p; y++) circle({ x: s.P.x, y }, 2.5, "#f59f00"); break; }
-      circle({ x, y: mod(s.P.y + l * (x - s.P.x)) }, 2.5, "#f59f00");
+      if (l === null) { for (let y = 0; y < p; y++) circle({ x: s.P.x, y }, 2.5, "#E8A33D"); break; }
+      circle({ x, y: mod(s.P.y + l * (x - s.P.x)) }, 2.5, "#E8A33D");
     }
-    circle(s.P, 9, null, "#3b5bdb"); label(s.P, "P", "#3b5bdb");
-    if (!same(s.P, s.Q)) { circle(s.Q, 9, null, "#3b5bdb"); label(s.Q, "Q", "#3b5bdb"); }
+    circle(s.P, 9, null, "#2F54C9"); label(s.P, "P", "#2F54C9");
+    if (!same(s.P, s.Q)) { circle(s.Q, 9, null, "#2F54C9"); label(s.Q, "Q", "#2F54C9"); }
     if (s.R !== O) {
       const third = { x: s.R.x, y: mod(-s.R.y) };                    // -R, on the line
-      circle(third, 9, null, "#c0392b", true); label(third, "−R", "#c0392b");
+      circle(third, 9, null, "#C2373F", true); label(third, "−R", "#C2373F");
     }
   }
-  if (s.R !== O) { circle(s.R, 7, "#c0392b"); label(s.R, "R", "#c0392b"); }
-  else { ctx.fillStyle = "#c0392b"; ctx.font = "bold 14px sans-serif"; ctx.fillText("R = O (point at infinity)", M, 20); }
+  if (s.R !== O) { circle(s.R, 7, "#C2373F"); label(s.R, "R", "#C2373F"); }
+  else { ctx.fillStyle = "#C2373F"; ctx.font = "600 14px Literata, Georgia, serif"; ctx.fillText("R = O (point at infinity)", M, 20); }
 
   document.querySelector("#stepTitle b").textContent = `Step ${anim.i + 1} / ${anim.steps.length}:  ${s.label}`;
   document.getElementById("stepText").textContent = explain(s);
