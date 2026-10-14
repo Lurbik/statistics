@@ -4,7 +4,7 @@ Ludovico Toto · MSc Cybersecurity, Sapienza University of Rome · 2026/2027
 
 | Homework | Page |
 |---|---|
-| HMWK 1 — Private key → public key with elliptic-curve scalar multiplication | https://lurbik.github.io/statistics/hmwk1.html |
+| HMWK 1 — Private key → public key with elliptic-curve scalar multiplication | https://github.com/Lurbik/statistics/blob/main/hmwk1.html |
 | HMWK 2 — From wallet seed to Ethereum address | https://lurbik.github.io/statistics/hmwk2.html |
 
 ## Files
