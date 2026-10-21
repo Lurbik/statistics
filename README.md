@@ -6,6 +6,7 @@ Ludovico Toto · MSc Cybersecurity, Sapienza University of Rome · 2026/2027
 |---|---|
 | HMWK 1 — Private key → public key with elliptic-curve scalar multiplication | https://lurbik.github.io/statistics/hmwk1.html |
 | HMWK 1_ex2 — From wallet seed to Ethereum address | https://lurbik.github.io/statistics/hmwk2.html |
+| HMWK 2 - ECC, Caesar Cipher and Cryptanalysis | https://lurbik.github.io/statistics/Vero_HMWK2.html |
 
 ## Files
 - `hmwk1.html` — toy curve y² = x³ + 7 (mod 17): point addition, scalar multiplication Q = kG (repeated addition and double-and-add), step-by-step canvas visualisation, statistical exploration and discussion. Plain HTML/CSS/JavaScript, no libraries.
