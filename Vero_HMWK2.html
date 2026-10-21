@@ -1,0 +1,1717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Interactive Statistics Homework 2: EC ElGamal on secp256k1, Caesar cipher, corpus-based cryptanalysis and reproducible experiments.">
+<meta name="theme-color" content="#243e91">
+<title>Homework 2 — ECC, Caesar Cipher and Cryptanalysis</title>
+<style>
+  :root{
+    --ink:#1b2435; --muted:#5a667c; --paper:#f6f8fc; --surface:#ffffff;
+    --line:#d3dbe9; --grid:#e4eaf4; --blue:#2f54c9; --blue-d:#21409c;
+    --green:#1a7a56; --green-bg:#e4f5ee; --amber:#9a6a0b; --amber-bg:#fdf3dd;
+    --red:#b53340; --red-bg:#fbe6e8; --marker:#ffe27a;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth;overflow-x:clip}
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto} *{animation:none!important;transition:none!important}}
+  body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.6 var(--sans);overflow-x:clip}
+  a{color:var(--blue)} a:hover{color:var(--blue-d)}
+  .wrap{max-width:1020px;margin:0 auto;padding:0 16px}
+  header.top{background:#eef2fa;border-bottom:1px solid var(--line)}
+  header.top .wrap{padding:30px 16px 20px}
+  .course{margin:0 0 8px;font-size:.9rem;color:var(--muted);font-weight:600;letter-spacing:.01em}
+  h1{margin:0;font-size:clamp(1.5rem,3.6vw,2.25rem);line-height:1.15;font-weight:700;max-width:28ch}
+  .lede{margin:12px 0 0;max-width:76ch;color:#33415c}
+  nav.toc{position:sticky;top:0;z-index:20;background:rgba(246,248,252,.95);backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line)}
+  nav.toc .wrap{display:flex;flex-wrap:wrap;gap:2px 4px;padding:7px 16px;font-size:.82rem}
+  nav.toc a{color:var(--ink);text-decoration:none;padding:4px 8px;border-radius:6px;white-space:nowrap}
+  nav.toc a:hover{background:#e0e8f6}
+  main.wrap{padding-bottom:70px}
+  section{padding-top:26px;scroll-margin-top:88px}
+  @media (max-width:540px){section{scroll-margin-top:118px}}
+  h2{font-size:1.38rem;font-weight:700;margin:24px 0 12px;padding-top:18px;border-top:1px solid var(--line)}
+  h2 .num{color:var(--blue);font-variant-numeric:tabular-nums}
+  h3{font-size:1.08rem;font-weight:700;margin:20px 0 8px}
+  h4{font-size:.98rem;font-weight:700;margin:14px 0 6px}
+  p,li{max-width:78ch} ul,ol{padding-left:1.25em} li{margin:5px 0}
+  .muted,.note{color:var(--muted);font-size:.92rem}
+  code,.mono{font-family:var(--mono);font-size:.86em}
+  .demo{background:var(--green-bg);border:1px solid #bfe3d4;border-left:3px solid var(--green);
+    border-radius:6px;padding:8px 13px;margin:10px 0;font-size:.92rem}
+  .demo b{color:var(--green)}
+  .warn{background:var(--amber-bg);border:1px solid #efd79a;border-left:3px solid var(--amber);
+    border-radius:6px;padding:9px 13px;margin:12px 0;font-size:.92rem}
+  .formula{display:block;margin:12px 0;padding:11px 15px;background:#f2f5fb;border:1px solid var(--line);
+    border-left:3px solid var(--blue);border-radius:5px;font-family:var(--mono);font-size:.86rem;line-height:1.75;overflow-x:auto}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:14px 16px;margin:13px 0;max-width:100%}
+  .controls{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end;margin:12px 0;min-width:0}
+  label{display:flex;flex-direction:column;gap:4px;font-size:.84rem;color:var(--muted);min-width:0;max-width:100%}
+  label.full{width:100%;flex:1 1 100%}
+  input,select,textarea{font:400 .9rem var(--mono);color:var(--ink);padding:8px 10px;background:#fff;
+    border:1px solid #b6c2d8;border-radius:6px;max-width:100%}
+  textarea{font-size:.85rem;line-height:1.5;width:100%;resize:vertical}
+  input.bad{border-color:var(--red);background:#fff6f7}
+  .err{color:var(--red);font-size:.8rem;margin-top:3px;min-height:0}
+  button{font:600 .88rem var(--sans);color:#fff;background:var(--blue);border:1px solid var(--blue);
+    padding:9px 14px;border-radius:6px;cursor:pointer;max-width:100%}
+  button:hover{background:var(--blue-d);border-color:var(--blue-d)}
+  button.ghost{background:#fff;color:var(--blue)} button.ghost:hover{background:#eef2fa}
+  button:disabled,input:disabled,select:disabled,textarea:disabled{opacity:.48;cursor:not-allowed}
+  :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  pre{margin:9px 0;padding:12px 14px;background:#f2f5fb;border:1px solid var(--line);border-radius:8px;
+    overflow-x:auto;font:.82rem/1.6 var(--mono);white-space:pre-wrap;word-break:break-word;max-width:100%}
+  .tag{display:inline-block;padding:1px 9px;border-radius:10px;font:700 .72rem var(--sans);white-space:nowrap;vertical-align:1px}
+  .ok{background:var(--green-bg);color:var(--green)} .no{background:var(--red-bg);color:var(--red)}
+  .wait{background:#eceff5;color:var(--muted)} .stale{background:var(--amber-bg);color:var(--amber)}
+  .tableWrap{overflow-x:auto;margin:10px 0;max-width:100%;-webkit-overflow-scrolling:touch}
+  table{border-collapse:collapse;font-size:.85rem;background:var(--surface);width:100%}
+  th,td{border:1px solid var(--grid);padding:6px 8px;text-align:left;vertical-align:top}
+  th{background:#eef2fa;font-weight:700}
+  td.n,th.n{text-align:right;font-family:var(--mono)}
+  .key{display:inline-block;padding:2px 9px;background:var(--marker);color:#4a3b00;font-weight:700;border-radius:3px;font-family:var(--mono)}
+  details{margin:9px 0;border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:3px 14px;max-width:100%}
+  summary{cursor:pointer;font-weight:600;padding:8px 0}
+  .tabs{display:flex;gap:4px;flex-wrap:wrap;margin:6px 0 0}
+  .tab{font:600 .85rem var(--sans);background:#e7edf8;color:var(--ink);border:1px solid var(--line);
+    border-bottom:none;border-radius:7px 7px 0 0;padding:8px 12px;cursor:pointer}
+  .tab[aria-selected="true"]{background:var(--surface);color:var(--blue)}
+  .tabpanel{border:1px solid var(--line);border-radius:0 9px 9px 9px;background:var(--surface);padding:14px 16px;max-width:100%}
+  .svgbox{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px;margin:8px 0;max-width:100%}
+  .svgbox svg{display:block;width:100%;height:auto}
+  .prog{height:8px;background:#e3e9f3;border-radius:4px;overflow:hidden;margin:8px 0}
+  .prog>div{height:100%;background:var(--blue);width:0;transition:width .1s linear}
+  footer{border-top:1px solid var(--line);padding:20px 0 38px;font-size:.9rem;color:var(--muted)}
+  @media print{
+    nav.toc,button,input[type=file],.prog{display:none!important}
+    header.top{background:#fff}
+    body{background:#fff}
+    .tabpanel{display:block!important;margin-bottom:12px;border-radius:8px}
+    .panel,.svgbox{break-inside:avoid}
+    details.print-hide:not([open]){display:none!important}
+  }
+
+  /* Final presentation: no external fonts, scripts, images, or build step. */
+  .wrap{max-width:1120px;padding-left:24px;padding-right:24px}
+  header.top{background:linear-gradient(125deg,#eaf0ff 0%,#f7f9ff 62%,#e9f5f2 100%)}
+  header.top .wrap{padding:42px 24px 32px}
+  h1{font-size:clamp(1.9rem,4vw,3rem);letter-spacing:-.045em;max-width:29ch;color:#192e63}
+  .course{color:#445b89;font-size:.78rem;text-transform:uppercase;letter-spacing:.09em}
+  .lede{font-size:1.02rem;max-width:86ch}
+  .heroMeta{display:flex;gap:8px;flex-wrap:wrap;margin:20px 0 0}
+  .heroMeta span{border:1px solid #cbd7ee;background:#ffffffb8;border-radius:30px;padding:4px 11px;font-size:.78rem;color:#334b70}
+  .quickstart{margin:24px 0 8px;padding:22px;border-radius:16px;background:white;border:1px solid var(--line);box-shadow:0 6px 24px #182b5710}
+  .quickstart h2{margin:0 0 8px;border:0;padding:0;font-size:1.25rem}
+  .steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0}
+  .step{display:block;text-decoration:none;padding:16px;border:1px solid var(--line);border-radius:12px;color:var(--ink);background:#f8faff}
+  .step:hover{background:#edf3ff;color:var(--ink)}
+  .step strong{display:block;margin:6px 0;font-size:.98rem}
+  .step span{font-size:.85rem;color:var(--muted)}
+  .step b{color:var(--blue);font:700 .75rem var(--mono);letter-spacing:.08em}
+  .panel{border-radius:12px;padding:18px 20px;box-shadow:0 2px 10px #182b5706}
+  section>h2{letter-spacing:-.025em;font-size:1.5rem}
+  .demo{border-radius:8px;padding:12px 15px}
+  button{border-radius:8px;min-height:42px}
+  textarea,input,select{border-radius:8px}
+  .tag{white-space:normal;overflow-wrap:anywhere;line-height:1.7}
+  .mono,code{overflow-wrap:anywhere}
+  .tabpanel[hidden]{display:none}
+  .svgbox{overflow-x:auto}
+  .svgbox svg{min-width:580px}
+  .tableWrap:focus-visible,.svgbox:focus-visible{outline:2px solid var(--blue)}
+  .skip{position:absolute;left:16px;top:-80px;background:#fff;padding:10px;z-index:100}
+  .skip:focus{top:12px}
+  .printOnly{display:none}
+  .conclusion{background:#edf3ff;border:1px solid #cbd7ee;border-radius:12px;padding:16px 20px;margin-top:20px}
+  @media(max-width:650px){
+    .wrap{padding-left:14px;padding-right:14px}
+    header.top .wrap{padding:30px 18px 24px}
+    nav.toc .wrap{flex-wrap:nowrap;overflow-x:auto;padding:9px 14px}
+    nav.toc a{flex:0 0 auto;padding:6px 8px}
+    section{scroll-margin-top:70px}
+    .steps{grid-template-columns:1fr;gap:8px}
+    .step{padding:12px 14px}
+    .step strong{display:inline;margin-left:8px}.step span{display:block;margin-top:4px}
+    .quickstart,.panel,.tabpanel{padding:16px}
+    .tabs{gap:3px}.tab{flex:1 1 100%;border:1px solid var(--line);border-radius:7px}
+    .controls>label{flex:1 1 140px}.controls>button{flex:1 1 160px}
+  }
+  @media print{
+    @page{margin:15mm}
+    .skip,.quickstart,.heroMeta,.tabs,.print-hide,footer{display:none!important}
+    .wrap{max-width:none;padding:0}header.top .wrap{padding:0}
+    header.top{background:white;border-bottom:0}h1{font-size:23pt}
+    section{padding-top:8px}h2{font-size:16pt;break-after:avoid}
+    .panel{box-shadow:none;break-inside:auto}.svgbox{break-inside:avoid;padding:4px}
+    .svgbox svg{min-width:0;width:100%}.tableWrap{overflow:visible}
+    table{font-size:8pt;table-layout:fixed}th,td{overflow-wrap:anywhere;padding:4px}
+    pre{font-size:8pt}.printOnly{display:block}
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to laboratory</a>
+<noscript><p style="padding:20px">Enable JavaScript to run this interactive laboratory. The written explanation remains readable.</p></noscript>
+<header class="top"><div class="wrap">
+  <p class="course">Statistics · MSc Cybersecurity, Sapienza University of Rome · Homework 2</p>
+  <h1>Homework 2 — ECC, Caesar Cipher and Cryptanalysis</h1>
+  <p class="lede">A didactic public-key encryption scheme on the real <code>secp256k1</code> curve and the classical Caesar cipher, side by side: encryption, decryption, statistical key recovery on Caesar, and an incremental exhaustive search against a deliberately restricted ECC private-key space. Runs completely offline on synthetic data; every result is computed live.</p>
+<div class="heroMeta"><span>Real secp256k1 · small private-key interval</span><span>3 Caesar estimators</span><span>Offline · no dependencies</span></div>
+</div></header>
+<nav class="toc" aria-label="Sections"><div class="wrap">
+  <a href="#s0">0 · Assumptions</a>
+  <a href="#s1">1 · Message</a>
+  <a href="#s2">2 · ECC scheme</a>
+  <a href="#s3">3 · Caesar</a>
+  <a href="#s4">4 · Caesar attack</a>
+  <a href="#s5">5 · Length tests</a>
+  <a href="#s6">6 · ECC attack</a>
+  <a href="#s7">7 · Comparison</a>
+  <a href="#s8">8 · Alternatives</a>
+  <a href="#s9">9 · Code &amp; tests</a>
+</div></nav>
+<main class="wrap" id="main">
+<div class="quickstart">
+<h2>One message. Two ciphers. Two different weaknesses.</h2>
+<p class="note">Follow these three stages; the numbered sections contain both the working experiments and the written report.</p>
+<div class="steps">
+<a class="step" href="#s1"><b>01 / ENCRYPT</b><strong>Follow the message</strong><span>Normalize → generate a key → encrypt and decrypt with both schemes.</span></a>
+<a class="step" href="#s4"><b>02 / MEASURE</b><strong>Test the language model</strong><span>Score 26 Caesar shifts, then compare 10–500-letter samples.</span></a>
+<a class="step" href="#s6"><b>03 / EXPLAIN</b><strong>Recover the restricted key</strong><span>Search public Q, inspect the statistics, and explain why the attacks differ.</span></a>
+</div>
+<details class="print-hide"><summary>Guida rapida in italiano — cosa premere e cosa osservare</summary>
+<ol>
+<li><b>Sezione 1:</b> lascia il messaggio iniziale oppure scrivine uno breve in inglese. Premi <b>Normalize message</b>. Entrambi gli algoritmi useranno esattamente il testo normalizzato.</li>
+<li><b>Sezione 2, Recipient:</b> imposta <b>B_key = 1000</b>, <b>k = 37</b> e premi <b>Generate key pair</b>. Il punto pubblico è Q = kG. Per generare una chiave casuale, lascia k vuoto.</li>
+<li><b>Sender:</b> premi <b>Encrypt with ECC</b>. L'ispettore mostra il procedimento per ciascun byte. Torna in <b>Recipient</b> e premi <b>Decrypt with local k</b>: il messaggio deve coincidere.</li>
+<li><b>Sezione 3:</b> lascia <b>s = 3</b>, premi <b>Encrypt normalized message</b> e poi <b>Decrypt &amp; verify round trip</b>. La cifratura ECC è casuale, Cesare è deterministico.</li>
+<li><b>Sezione 4:</b> il corpus inglese è già caricato. Premi <b>Run statistical attack</b>: ottieni stime, non una garanzia. I 26 candidati permettono di controllare anche una stima errata.</li>
+<li><b>Sezione 5:</b> lascia <b>100</b> prove e seed <b>12345</b>, premi <b>Run length experiments</b>. Leggi il grafico e l'esempio di errore. Il seed rende ripetibile questo esperimento; non controlla le chiavi ECC.</li>
+<li><b>Sezione 6:</b> con <b>B_search = 1000</b>, premi <b>Recover k &amp; decrypt</b>: deve trovare 37. Ripeti con <b>B_search = 20</b>: non trova la chiave perché è fuori dall'intervallo.</li>
+<li><b>Sezioni 7 e 9:</b> calcola istogrammi ed entropia, poi esegui i test. Un istogramma quasi uniforme non rende sicura una chiave piccola. I test non modificano i tuoi dati.</li>
+</ol>
+<p class="note">L'app non salva automaticamente i dati: ricaricare la pagina azzera la sessione. Esporta il CSV delle prove e, se serve, il JSON pubblico. Per consegnare il sito basta questo file, chiamato <code>index.html</code>.</p>
+</details>
+<div class="controls"><button class="ghost" id="printBtn">Print / save report as PDF</button><span class="note">Run the experiments first to include your results. Full coordinate/code tables are excluded from print.</span></div>
+</div>
+
+<section id="s0">
+<h2><span class="num">0.</span> Scope and explicit assumptions</h2>
+<p>This laboratory performs didactic cryptanalysis on synthetic keys and texts generated locally in the browser: no real wallets, credentials, external targets, or network connections are used. In Homework 1, the relation <span class="mono">Q = kG</span> was illustrated on the small prime field curve <span class="mono">y² = x³ + 7 (mod 17)</span> with <span class="mono">G = (1, 5), k = 6, Q = (5, 8)</span>. That toy curve is <em>not</em> the real <span class="mono">secp256k1</span> curve, and <span class="mono">Q = kG</span> defines public-key derivation rather than an encryption algorithm. Here we use the <b>official 256-bit secp256k1 domain parameters</b> and make the ECC key-recovery experiment feasible only by restricting the private key <span class="mono">k</span> to a small interval <span class="mono">1…B</span>.</p>
+<ul>
+  <li><b>Didactic encryption choice:</b> because the assignment prompt does not mandate a specific ECC encryption standard, we explicitly adopt <b>didactic per-byte EC ElGamal</b>. It must not be confused with "Ethereum encryption", hybrid ECIES, or ECDSA signatures.</li>
+  <li><b>Two distinct moduli:</b> curve point coordinates <span class="mono">(x, y)</span> are reduced modulo the field prime <span class="mono">p</span>; scalars (private key <span class="mono">k</span> and ephemeral nonces <span class="mono">r</span>) are reduced modulo the group order <span class="mono">n</span>.</li>
+  <li><b>Long-term key vs ephemeral secret:</b> in this lab, only the recipient's private key <span class="mono">k</span> is restricted to <span class="mono">1…B</span> (whereas in a full deployment <span class="mono">k</span> is drawn uniformly from <span class="mono">1…n−1</span>). Each byte's ephemeral scalar <span class="mono">r</span> is drawn uniformly from the full range <span class="mono">1…n−1</span> via <code>crypto.getRandomValues</code> with rejection sampling, making accidental nonce collisions negligibly likely and avoiding a deliberately small-<span class="mono">r</span> interval.</li>
+  <li><b>Strict attacker boundary:</b> the Caesar attack receives only the ciphertext and the corpus language model; the ECC key-recovery routine receives only public parameters <span class="mono">(G, Q, B_search)</span> and never accesses <span class="mono">k</span>, <span class="mono">r</span>, <span class="mono">S</span>, plaintext, or DOM fields.</li>
+</ul>
+</section>
+
+<section id="s1">
+<h2><span class="num">1.</span> Common message normalization</h2>
+<p class="demo"><b>What this shows:</b> both schemes encrypt and decrypt <em>the exact same</em> normalized printable-ASCII string, ensuring a fair comparison and an exact round-trip verification.</p>
+<p>Normalization pipeline: Unicode NFD decomposition with combining diacritics stripped (<span class="mono">È → E</span>); conversion to uppercase; newlines and tabs converted to single spaces; filtering to printable ASCII (codes 32–126). Transformed and removed characters are reported below.</p>
+<div class="panel">
+  <label class="full">Input message
+    <textarea id="msgIn" rows="2">Attack at dawn! Meet by the old bridge.</textarea>
+  </label>
+  <div class="controls">
+    <button id="normBtn">Normalize message</button>
+    <span class="note" id="normInfo" aria-live="polite"></span>
+  </div>
+  <div id="normOut"></div>
+</div>
+</section>
+
+<section id="s2">
+<h2><span class="num">2.</span> ECC encryption — didactic EC ElGamal on secp256k1</h2>
+<p class="demo"><b>What this shows:</b> anyone holding the public key <span class="mono">Q</span> can encrypt; only the holder of the matching private key <span class="mono">k</span> can remove the mask; fresh per-byte randomness <span class="mono">r</span> yields different ciphertexts every time the same message is encrypted.</p>
+<p>Official <code>secp256k1</code> parameters (SEC 2 v2): curve <span class="mono">y² = x³ + 7 (mod p)</span> with <span class="mono">a = 0, b = 7</span>, prime field modulus <span class="mono">p = 2²⁵⁶ − 2³² − 977</span>, and base point <span class="mono">G</span> of prime order <span class="mono">n</span>. All arithmetic uses JavaScript <code>BigInt</code>.</p>
+
+<h3>Byte-to-point reversible encoding vs encryption</h3>
+<p>Each byte value <span class="mono">b ∈ {0…255}</span> (in our demo, printable ASCII bytes 32–126 from the normalized message) is mapped to the curve point <span class="mono">M_b = (b + 1)·G</span> using a public, precomputed 256-entry table. This mapping is a reversible <em>encoding</em>, not encryption: anyone can invert it by table lookup. Encryption masks <span class="mono">M_b</span> with an ephemeral shared point <span class="mono">S = rQ</span>:</p>
+<p class="formula">Key generation:   k ∈ {1…B_key},   Q = kG
+Encrypt byte b:   pick uniform r ∈ {1…n−1},   R = rG,   S = rQ,   C = M_b + S   →   ciphertext pair = (R, C)
+Decrypt (R, C):   compute kR = k(rG) = r(kG) = rQ = S,   recover M_b = C − kR,   table-lookup byte b from M_b</p>
+
+<div class="tabs" role="tablist" aria-label="Roles">
+  <button class="tab" id="tabR" role="tab" aria-selected="true" aria-controls="panelR">Recipient (local key pair)</button>
+  <button class="tab" id="tabS" role="tab" aria-selected="false" aria-controls="panelS">Sender (uses public Q)</button>
+  <button class="tab" id="tabP" role="tab" aria-selected="false" aria-controls="panelP">Public / Attacker view</button>
+</div>
+
+<div class="tabpanel" id="panelR" role="tabpanel" aria-labelledby="tabR">
+  <p class="note">The recipient generates a local key pair <span class="mono">(k_local, Q_local)</span> and can decrypt any active ciphertext whose public key <span class="mono">Q</span> matches <span class="mono">Q_local</span>. Importing a public JSON file does not overwrite <span class="mono">k_local</span>.</p>
+  <div class="controls">
+    <label>Generation bound B_key (1–50000) <input id="Bkey" type="text" value="1000" inputmode="numeric" style="width:130px">
+      <span class="err" id="BkeyErr"></span></label>
+    <label>Private key k (blank = uniform random in 1…B_key)
+      <input id="kval" type="text" placeholder="random" style="width:180px"><span class="err" id="kvalErr"></span></label>
+    <button id="genKey">Generate key pair</button>
+  </div>
+  <div id="keyOut" class="note" aria-live="polite">No local key pair generated yet.</div>
+  <div class="controls">
+    <button id="eccDec" class="ghost" disabled>Decrypt with local k</button>
+    <button id="revealK" class="ghost" type="button">Show/hide local k (didactic)</button>
+  </div>
+  <div id="decOut" class="note" aria-live="polite"></div>
+  <div id="kReveal" class="note" hidden></div>
+</div>
+
+<div class="tabpanel" id="panelS" role="tabpanel" aria-labelledby="tabS" hidden>
+  <p class="note">The sender encrypts to the active ciphertext’s public key <span class="mono">Q</span> if one is loaded; otherwise it uses <span class="mono">Q_local</span>. No private key is passed to the encryption routine. It draws a fresh scalar <span class="mono">r ∈ {1…n−1}</span> for every byte.</p>
+  <div class="controls">
+    <label>ECC length limit (1–128 bytes) <input id="eccLimit" type="text" value="128" style="width:120px"><span class="err" id="eccLimitErr"></span></label>
+    <button id="eccEnc" disabled>Encrypt with ECC</button>
+    <button id="eccCancel" class="ghost" disabled>Cancel</button>
+  </div>
+  <div class="prog"><div id="eccProg"></div></div>
+  <div id="eccOut" class="note" aria-live="polite">Generate a key and normalize a message first.</div>
+  <details id="byteView" open><summary>Didactic byte inspector (compare sender-only secrets r, S with public R, C)</summary>
+    <div class="controls" style="margin-top:8px">
+      <label>Inspect byte index <select id="byteIdx" disabled><option>—</option></select></label>
+    </div>
+    <div id="byteOut" class="note">Encrypt a message locally to inspect its per-byte curve points.</div>
+  </details>
+</div>
+
+<div class="tabpanel" id="panelP" role="tabpanel" aria-labelledby="tabP" hidden>
+  <p class="note">Everything visible on the public channel: the target public key <span class="mono">Q</span> and the list of point pairs <span class="mono">(R_i, C_i)</span>. JSON export contains exclusively this public bundle (never <span class="mono">k</span>, <span class="mono">r</span>, <span class="mono">S</span>, or plaintext).</p>
+  <div id="pubOut" class="note">Nothing published yet.</div>
+  <div class="controls">
+    <button id="eccExport" class="ghost" disabled>Export public ciphertext (JSON)</button>
+    <label>Import public ciphertext JSON <input id="eccImport" type="file" accept=".json,application/json"></label>
+  </div>
+  <div id="importOut" class="note" aria-live="polite"></div>
+</div>
+
+<div class="warn"><b>Why this toy construction is not for production:</b> (1) <b>Ciphertext expansion:</b> each plaintext byte is encrypted into two curve points—normally four 32-byte coordinates (128 raw coordinate bytes per plaintext byte; 130 bytes in uncompressed SEC 1 encoding with <code>0x04</code> prefixes, 66 bytes in compressed SEC 1 encoding, and even more in hex-JSON). The exceptional point at infinity has no coordinates and occupies one byte in SEC 1 encoding; (2) <b>Lack of authentication / malleability:</b> there is no integrity check to detect tampering (for instance, replacing <span class="mono">C</span> with <span class="mono">C + mG</span> shifts the decoded point to <span class="mono">(b+1+m)G</span>, which decodes to byte <span class="mono">b+m</span> whenever <span class="mono">0 ≤ b+m ≤ 255</span>, or fails table lookup otherwise), and message length is leaked; (3) <b>Small key range in this lab:</b> restricting <span class="mono">k</span> to <span class="mono">1…B</span> allows trivial key recovery (Section 6).</div>
+</section>
+
+<section id="s3">
+<h2><span class="num">3.</span> The Caesar cipher</h2>
+<p class="demo"><b>What this shows:</b> a symmetric monoalphabetic substitution that shifts letters A–Z modulo 26 while preserving spaces, digits, and punctuation.</p>
+<p>With letters A–Z mapped to <span class="mono">0…25</span> and shift key <span class="mono">s ∈ {0…25}</span> (<span class="mono">s = 0</span> is the identity): <span class="mono">E_s(x) = (x + s) mod 26</span> and <span class="mono">D_s(y) = (y − s) mod 26</span>.</p>
+<div class="panel">
+  <div class="controls">
+    <label>Shift key s (0–25) <input id="caesarS" type="text" value="3" style="width:90px"><span class="err" id="caesarSErr"></span></label>
+    <button id="caesarEnc">Encrypt normalized message</button>
+    <button id="caesarDec" class="ghost">Decrypt &amp; verify round trip</button>
+  </div>
+  <div id="caesarOut" class="note" aria-live="polite">Normalize a message first.</div>
+</div>
+</section>
+
+<section id="s4">
+<h2><span class="num">4.</span> Language corpus &amp; statistical cryptanalysis of Caesar</h2>
+<p class="demo"><b>What this shows:</b> because a shift only cyclically relabels A–Z, comparing candidate decryptions against an English corpus model recovers the shift automatically.</p>
+<p>The built-in training corpus is synthetic English prose written for this laboratory (<span id="corpusCountNote">over 11,500 A–Z letters</span> across varied topics). Because it is synthetic, its empirical distribution reflects this specific text rather than a universal natural-language benchmark. You can paste any custom corpus or load a local <code>.txt</code> file; all frequencies are computed dynamically from the loaded corpus.</p>
+<p><b>Unified letter-preparation convention (<code>lettersOnly</code>):</b> both unigram counts and adjacent bigram pairs are extracted from <code>lettersOnly(text)</code>, which upper-cases the text and keeps exclusively <code>A–Z</code> (so consecutive letters across word boundaries form bigrams consistently in corpus training, candidate scoring, and Section 5 window sampling). Decrypted previews retain spaces and punctuation for readability.</p>
+<div class="panel">
+  <label class="full">Training corpus (English)
+    <textarea id="corpusIn" rows="4"></textarea>
+  </label>
+  <div class="controls">
+    <button id="buildModel">Build language model from corpus</button>
+    <label>Load local .txt <input id="corpusFile" type="file" accept=".txt,text/plain"></label>
+    <span class="note" id="corpusInfo" aria-live="polite"></span>
+  </div>
+  <div id="modelOut"></div>
+</div>
+
+<h3>Goodness-of-fit via Chi-squared (with additive smoothing α = 0.5)</h3>
+<p>To prevent division by zero when a corpus omits rare letters, we apply additive smoothing with <span class="mono">α = 0.5</span> (add-half smoothing) over the 26 letters:</p>
+<p class="formula">f_i = (count_i + 0.5) / (T + 26 × 0.5)      where T = total A–Z letters in corpus,  Σ_i f_i = 1</p>
+<p>Given a ciphertext with <span class="mono">N</span> letters, for each candidate shift <span class="mono">s ∈ {0…25}</span> we decrypt the text, count the observed occurrences <span class="mono">O_i(s)</span> of each letter <span class="mono">i ∈ {0…25}</span>, and compute:</p>
+<p class="formula">χ²(s) = Σ_{i=0..25} [ (O_i(s) − N·f_i)² / (N·f_i) ]</p>
+<p><b>Interpretation:</b> lower <span class="mono">χ²(s)</span> indicates closer agreement with the corpus letter profile. It is a goodness-of-fit ranking score, not a calibrated probability of correctness. We also compare two optional alternatives on the same <code>lettersOnly</code> stream: <b>Bigram (2-gram) log-likelihood</b> (requires <span class="mono">N ≥ 2</span> letters; returns <em>insufficient data</em> for <span class="mono">N &lt; 2</span>) and the <b>Most-common-letter → E</b> heuristic. Across all three methods, a candidate shift is counted as a unique estimate only when there is no tie within numerical tolerance (<span class="mono">10⁻⁹</span>).</p>
+
+<div class="panel">
+  <label class="full">Ciphertext to attack (only A–Z letters are scored)
+    <textarea id="attackIn" rows="2">DWWDFN DW GDZQ</textarea>
+  </label>
+  <div class="controls">
+    <button id="runAttack">Run statistical attack (all 26 shifts)</button>
+    <span class="note">Receives only the ciphertext and the active language model.</span>
+  </div>
+  <div id="attackOut" aria-live="polite"></div>
+</div>
+</section>
+
+<section id="s5">
+<h2><span class="num">5.</span> Empirical evaluation across ciphertext lengths</h2>
+<p class="demo"><b>What this shows:</b> empirical key-recovery accuracy across ciphertext lengths (10, 25, 50, 100, 250, 500 letters) sampled from a held-out evaluation text.</p>
+<p>The held-out evaluation text below is distinct from the training corpus. For each length <span class="mono">L</span>, a seeded PRNG (<code>mulberry32</code>, separate from ECC's <code>crypto.getRandomValues</code>) draws windows of <span class="mono">L</span> letters from <code>lettersOnly(evalText)</code> with replacement and encrypts each with a random shift <span class="mono">s_true ∈ {0…25}</span>. A trial counts as a <b>success</b> if and only if the method returns a single, non-tied top-1 shift equal to <span class="mono">s_true</span>; ties and insufficient-data outcomes are tracked separately and counted as non-successes.</p>
+<div class="panel">
+  <label class="full">Held-out evaluation text (distinct from training corpus)
+    <textarea id="evalIn" rows="3"></textarea>
+  </label>
+  <div class="controls">
+    <label>Trials per length (1–1000) <input id="trials" type="text" value="100" style="width:110px"><span class="err" id="trialsErr"></span></label>
+    <label>PRNG seed <input id="seed" type="text" value="12345" style="width:120px"><span class="err" id="seedErr"></span></label>
+    <button id="runExp">Run length experiments</button>
+    <button id="expCancel" class="ghost" disabled>Cancel</button>
+    <button id="expCsv" class="ghost" disabled>Export CSV</button>
+  </div>
+  <div class="prog"><div id="expProg"></div></div>
+  <div id="expOut"><p class="note">not run</p></div>
+</div>
+</section>
+
+<section id="s6">
+<h2><span class="num">6.</span> Attacking the restricted ECC key space</h2>
+<p class="demo"><b>What this shows:</b> recovering the private key <span class="mono">k</span> in <span class="mono">O(B)</span> curve additions using exclusively the public generator <span class="mono">G</span> and the target public key <span class="mono">Q</span>, then decrypting the snapshotted ciphertext.</p>
+<p>The attacker receives <span class="mono">(G, Q, ciphertext, B_search)</span>. Starting from <span class="mono">P_1 = G</span>, it steps incrementally (<span class="mono">P_{j+1} = P_j + G</span>) without recomputing <span class="mono">jG</span> from scratch:</p>
+<p class="formula">P = O ;   for j = 1, 2, …, B_search:   P ← P + G ;   if P == Q return j</p>
+<div class="panel">
+  <div class="controls">
+    <label>Attacker search bound B_search (1–50000) <input id="Bsearch" type="text" value="1000" style="width:140px"><span class="err" id="BsearchErr"></span></label>
+    <button id="eccAttack" disabled>Recover k &amp; decrypt</button>
+    <button id="eccAttackCancel" class="ghost" disabled>Cancel</button>
+  </div>
+  <div class="prog"><div id="attProg"></div></div>
+  <div id="eccAttackOut" class="note" aria-live="polite">Generate a key and encrypt (or import) a ciphertext first.</div>
+</div>
+<p><b>Comparison with Caesar's statistical attack &amp; full-range ECC security:</b> Caesar's attack is probabilistic and depends on message length and language conformity. In contrast, the ECC key search is <b>algebraic and exact</b>: <span class="mono">jG = Q</span> is a deterministic mathematical condition that requires no language model and works even on a 1-byte ciphertext (or on <span class="mono">Q</span> alone). In a properly configured <code>secp256k1</code> system where <span class="mono">k</span> is drawn uniformly from <span class="mono">1…n−1</span> (<span class="mono">n ≈ 2²⁵⁶</span>), this exhaustive search still exists mathematically, but its complexity becomes computationally infeasible: linear scan costs <span class="mono">O(n)</span>, and generic discrete-logarithm algorithms (Baby-Step Giant-Step, Pollard's rho) require on the order of <span class="mono">√n ≈ 2¹²⁸</span> group operations (~128 bits of classical security against key recovery via ECDLP, while semantic security of ElGamal ciphertexts under passive eavesdropping relies on the Decisional Diffie-Hellman (DDH) assumption in the group).</p>
+</section>
+
+<section id="s7">
+<h2><span class="num">7.</span> Structural &amp; statistical comparison</h2>
+<div class="tableWrap" id="cmpTable"></div>
+<h3>Empirical histograms and Shannon entropy</h3>
+<p class="demo"><b>What this shows:</b> Caesar cyclically shifts the 26-letter histogram without changing its shape or letter entropy; ECC with fresh <span class="mono">r</span> distributes serialized coordinate bytes across <span class="mono">0…255</span>.</p>
+<div class="panel">
+  <button id="statBtn">Compute histograms &amp; entropy on current data</button>
+  <div id="statOut" class="note" aria-live="polite">Encrypt with Caesar (and optionally ECC) to compute statistics.</div>
+</div>
+</section>
+
+<section id="s8">
+<h2><span class="num">8.</span> Alternative attacks &amp; separation of weaknesses</h2>
+<ul>
+  <li><b>Caesar alternatives:</b> Exhaustive inspection of all 26 shifts is trivial for a human reader; <span class="mono">χ²</span> automates that ranking using all 26 unigram frequencies. The <b>Most-common-letter → E</b> heuristic uses only the single mode of the histogram and is easily misled on short samples or when <span class="mono">T, A, O</span> outnumber <span class="mono">E</span> (or when multiple letters tie for the maximum count). <b>Bigram log-likelihood</b> scores consecutive letter pairs, leveraging sequential transition structure, though on small or atypical samples neither unigram <span class="mono">χ²</span> nor bigrams is guaranteed to dominate in every single instance.</li>
+  <li><b>ECC interval algorithms:</b> When <span class="mono">k ∈ {1…B}</span>, <b>Baby-Step Giant-Step (BSGS)</b> reduces time to <span class="mono">O(√B)</span> using <span class="mono">O(√B)</span> stored points, and <b>Pollard's Kangaroo</b> achieves <span class="mono">O(√B)</span> expected time with small memory.</li>
+  <li><b>Weaknesses from restricted key space vs toy protocol design vs hypothetical implementation flaws:</b>
+    <ul>
+      <li><em>Restricted key space (<span class="mono">k ∈ 1…B</span>, present in this lab):</em> directly enables <span class="mono">O(B)</span> private-key recovery from <span class="mono">Q = kG</span>. Choosing <span class="mono">k</span> uniformly in <span class="mono">1…n−1</span> makes key recovery computationally infeasible.</li>
+      <li><em>Toy scheme design limitations (present even if <span class="mono">k</span> is chosen in <span class="mono">1…n−1</span>):</em> (a) <b>no authentication / malleability</b>—tampering is not reliably detected; adding <span class="mono">mG</span> to <span class="mono">C</span> shifts the decoded point to <span class="mono">(b+1+m)G</span>, which decodes to <span class="mono">b+m</span> whenever <span class="mono">0 ≤ b+m ≤ 255</span> (or triggers a table-lookup error if outside <span class="mono">0…255</span>); (b) <b>message length is observable</b>; (c) <b>high bandwidth overhead</b> (two curve points per plaintext byte).</li>
+      <li><em>Hypothetical nonce-reuse flaw (not deliberately introduced here; fresh independent draws make accidental reuse negligibly likely):</em> if an implementation reused the same <span class="mono">r</span> across two bytes, the masks <span class="mono">S = rQ</span> would be identical and <span class="mono">C_1 − C_2 = (b_1 − b_2)G</span> would immediately leak the byte difference.</li>
+    </ul>
+  </li>
+</ul>
+</section>
+
+<div class="conclusion">
+<h3>What this experiment establishes</h3>
+<p>Both ciphers allow a reversible transformation of the same message. Caesar keeps the language statistics under a fixed alphabet shift, so a corpus can rank likely keys. EC ElGamal uses fresh random masks, but restricting the recipient key to a small interval still permits exact recovery from <code>Q = kG</code>. A visually random ciphertext and a high empirical entropy do not by themselves establish cryptographic security.</p>
+<p class="note">The numerical conclusions for the current run are generated in Section 5 after you run the experiments. Changes to the corpus, evaluation text, seed or trial count invalidate those results.</p>
+</div>
+<section id="s9">
+<h2><span class="num">9.</span> Core source code, primary references &amp; self-tests</h2>
+<details class="print-hide"><summary>Inspect live running source of the core mathematical &amp; cryptanalysis functions</summary>
+<pre id="codeDump"></pre></details>
+<p><b>Primary references:</b> Certicom Research, <a href="https://www.secg.org/sec1-v2.pdf" target="_blank" rel="noopener">SEC 1 v2: Elliptic Curve Cryptography</a> and <a href="https://www.secg.org/sec2-v2.pdf" target="_blank" rel="noopener">SEC 2 v2: Recommended Elliptic Curve Domain Parameters</a> (Standards for Efficient Cryptography, 2009/2010), cited for the official <code>secp256k1</code> domain parameters <span class="mono">(p, a, b, G, n)</span> and Weierstrass group law. The fixed reference coordinates for <span class="mono">2G</span> in the self-tests were independently cross-checked against Node.js/OpenSSL secp256k1 public-key derivation when this file was validated; SEC 2 itself specifies <span class="mono">G</span>, not this test vector. The per-byte EC ElGamal mapping <span class="mono">M_b = (b+1)G</span> is a didactic construction chosen for this assignment.</p>
+<div class="panel">
+  <button id="testBtn">Run automated verification suite</button>
+  <div id="testOut" class="note" aria-live="polite">not run</div>
+</div>
+</section>
+
+</main>
+<footer><div class="wrap">Homework 2 — Statistics (MSc Cybersecurity, Sapienza University of Rome). Standalone offline HTML/CSS/JS laboratory on synthetic data.</div></footer>
+
+<script>
+"use strict";
+/* ========================= CORE: secp256k1 over BigInt ========================= */
+const P = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2Fn; // field prime (coordinates)
+const A = 0n, B = 7n;                                                        // y^2 = x^3 + 7 (mod p)
+const N = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141n; // group order (scalars)
+const Gx = 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798n;
+const Gy = 0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8n;
+const G = { x: Gx, y: Gy };
+const O = null;                                       // point at infinity (additive identity)
+
+const mod = (a, m = P) => ((a % m) + m) % m;
+function modInv(a, m = P) {                           // Extended Euclidean Algorithm: a^-1 mod m
+  a = mod(a, m); let [or, r] = [a, m], [os, s] = [1n, 0n];
+  while (r !== 0n) { const q = or / r; [or, r] = [r, or - q * r]; [os, s] = [s, os - q * s]; }
+  if (or !== 1n) throw new Error("no modular inverse"); return mod(os, m);
+}
+const onCurve = p => p === O ? true : mod(p.y * p.y) === mod(p.x * p.x * p.x + A * p.x + B);
+const neg = p => p === O ? O : { x: p.x, y: mod(-p.y) };
+function addPts(p1, p2) {
+  if (p1 === O) return p2; if (p2 === O) return p1;
+  if (p1.x === p2.x && mod(p1.y + p2.y) === 0n) return O;          // P + (-P) = O
+  let lam;
+  if (p1.x === p2.x && p1.y === p2.y) {                            // tangent doubling
+    if (p1.y === 0n) return O; lam = mod((3n * p1.x * p1.x + A) * modInv(2n * p1.y));
+  } else { lam = mod((p2.y - p1.y) * modInv(p2.x - p1.x)); }       // chord addition
+  const x3 = mod(lam * lam - p1.x - p2.x);
+  const y3 = mod(lam * (p1.x - x3) - p1.y);
+  return { x: x3, y: y3 };
+}
+function mulPt(k, p) {                                             // binary double-and-add
+  k = BigInt(k); if (k < 0n) { k = -k; p = neg(p); }
+  let r = O, a = p;
+  while (k > 0n) { if (k & 1n) r = addPts(r, a); a = addPts(a, a); k >>= 1n; }
+  return r;
+}
+function randScalar(max) {                                         // uniform in 1..max via rejection sampling
+  const bits = max.toString(2).length, bytes = (bits + 7) >> 3, mask = (1n << BigInt(bits)) - 1n;
+  for (;;) { const a = new Uint8Array(bytes); crypto.getRandomValues(a);
+    let x = 0n; for (const v of a) x = (x << 8n) | BigInt(v); x &= mask; if (x >= 1n && x <= max) return x; }
+}
+function eccEncryptByte(b, Q) {
+  const r = randScalar(N - 1n);
+  const R = mulPt(r, G), S = mulPt(r, Q), C = addPts(encTable[b], S);
+  if (R === O) throw new Error("R=O");
+  return { R, C, _r: r, _S: S };
+}
+function eccDecryptByte(ct, k) {
+  const M = addPts(ct.C, neg(mulPt(k, ct.R)));                      // M_b = C - kR
+  const b = decTable.get(ptKey(M));
+  if (b === undefined) throw new Error("decoded point not in 256-byte table (wrong key or modified ciphertext)");
+  return b;
+}
+function makeKeyRecovery(Q, Bsearch) {                             // incremental O(B) attacker (public Q & B_search only)
+  let p = O, j = 0, found = -1, done = false;
+  return { step(batch) {
+    if (done) return { found, attempts: j, done };
+    for (let i = 0; i < batch && j < Bsearch; i++) { p = addPts(p, G); j++; if (eqPt(p, Q)) { found = j; done = true; break; } }
+    if (j >= Bsearch) done = true;
+    return { found, attempts: j, done };
+  } };
+}
+
+const eqPt = (p, q) => (p === O || q === O) ? p === q : (p.x === q.x && p.y === q.y);
+const ptKey = p => p === O ? "O" : p.x.toString(16) + "," + p.y.toString(16);
+const ptFullHex = p => p === O ? "O (Point at Infinity)" : "(0x" + p.x.toString(16).padStart(64, "0") + ", 0x" + p.y.toString(16).padStart(64, "0") + ")";
+const ptJSON = p => p === O ? "O" : { x: "0x" + p.x.toString(16).padStart(64, "0"), y: "0x" + p.y.toString(16).padStart(64, "0") };
+function ptFromJSON(o, allowInfinity) {
+  if (o === "O") { if (!allowInfinity) throw new Error("point O not allowed here"); return O; }
+  if (!o || typeof o !== "object" || typeof o.x !== "string" || typeof o.y !== "string") throw new Error("malformed point");
+  if (!/^0x[0-9a-fA-F]{1,64}$/.test(o.x) || !/^0x[0-9a-fA-F]{1,64}$/.test(o.y)) throw new Error("coordinates must be hexadecimal strings of at most 32 bytes");
+  let x, y; try { x = BigInt(o.x); y = BigInt(o.y); } catch { throw new Error("coordinates not hex integers"); }
+  if (x < 0n || x >= P || y < 0n || y >= P) throw new Error("coordinates not canonical (0 <= x,y < p)");
+  const pt = { x, y }; if (!onCurve(pt)) throw new Error("point not on secp256k1"); return pt;
+}
+function mulberry32(seed) { let a = seed >>> 0; return function () {
+  a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+/* Precompute reversible 256-entry byte <-> point table: M_b = (b+1)G */
+const encTable = new Array(256), decTable = new Map();
+(function () { let acc = O; for (let b = 0; b < 256; b++) { acc = addPts(acc, G); encTable[b] = acc; decTable.set(ptKey(acc), b); } })();
+
+/* ========================= Unified letter preparation & helpers ========================= */
+const $ = id => document.getElementById(id);
+const esc = t => String(t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const shortHex = h => h.length > 20 ? h.slice(0, 10) + "…" + h.slice(-8) : h;
+const ptShort = p => p === O ? "O" : "(" + shortHex(p.x.toString(16).padStart(64, "0")) + ", " + shortHex(p.y.toString(16).padStart(64, "0")) + ")";
+
+const Acode = 65;
+function lettersOnly(text) {
+  return String(text).toUpperCase().replace(/[^A-Z]/g, "");
+}
+function textFingerprint(text) {
+  const s = String(text);
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  return "len=" + s.length + ",A-Z=" + lettersOnly(s).length + ",fnv32=0x" + h.toString(16).padStart(8, "0");
+}
+function caesar(text, s, dec) {
+  s = ((s % 26) + 26) % 26; if (dec) s = (26 - s) % 26; let r = "";
+  for (const ch of text) { const c = ch.charCodeAt(0);
+    r += (c >= 65 && c <= 90) ? String.fromCharCode((c - Acode + s) % 26 + Acode) : ch; }
+  return r;
+}
+function letterCounts(text) {
+  const up = lettersOnly(text), c = new Array(26).fill(0);
+  for (let i = 0; i < up.length; i++) c[up.charCodeAt(i) - Acode]++;
+  return { c, total: up.length, letters: up };
+}
+function shannon(counts, total) { if (!total) return 0; let h = 0;
+  for (const c of counts) if (c > 0) { const p = c / total; h -= p * Math.log2(p); } return h; }
+
+function readInt(id, min, max, { allowEmpty = false } = {}) {
+  const el = $(id), errEl = $(id + "Err"); const raw = el.value.trim();
+  const fail = msg => { el.classList.add("bad"); if (errEl) errEl.textContent = msg; return null; };
+  const okv = v => { el.classList.remove("bad"); if (errEl) errEl.textContent = ""; return v; };
+  if (raw === "") return allowEmpty ? okv(null) : fail("required");
+  if (!/^-?\d+$/.test(raw)) return fail("must be an integer");
+  const v = Number(raw);
+  if (!Number.isSafeInteger(v) || v < min || v > max) return fail("must be in " + min + "…" + max);
+  return okv(v);
+}
+
+/* ========================= Central State, Job Manager & Invalidation ========================= */
+const state = {
+  norm: null,
+  localKey: null,       // { k: BigInt, Q: Point, B: number } — never overwritten by public JSON import
+  ecc: null,            // { ct: [{R,C,_r?,_S?}], Q: Point, msgBytes: number[]|null, source: "local"|"imported", jsonBytes: number }
+  caesarValid: false,   // whether Section 3 ciphertext is up to date for current norm & caesarS
+  model: null,          // { f, T, counts, logBg, id, fp }
+  modelStale: false,
+  exp: null             // committed experiment results & snapshot metadata
+};
+
+let modelSeq = 0;
+let activeJob = null;   // { token, kind, cancel }
+let jobCounter = 0;
+let fileReadToken = 0;  // guards delayed FileReader callbacks
+
+const ALL_MUTATING_CONTROLS = [
+  "msgIn", "normBtn", "Bkey", "kval", "genKey", "eccDec", "revealK",
+  "eccLimit", "eccEnc", "byteIdx", "eccExport", "eccImport",
+  "caesarS", "caesarEnc", "caesarDec",
+  "corpusIn", "buildModel", "corpusFile", "attackIn", "runAttack",
+  "evalIn", "trials", "seed", "runExp", "expCsv",
+  "Bsearch", "eccAttack", "statBtn", "testBtn"
+];
+
+function canLocalDecrypt() {
+  return !!(state.ecc && state.localKey && state.localKey.k != null && eqPt(state.localKey.Q, state.ecc.Q));
+}
+
+function syncUIControls() {
+  const running = !!activeJob;
+  for (const id of ALL_MUTATING_CONTROLS) {
+    const el = $(id);
+    if (el) el.disabled = running;
+  }
+  $("eccCancel").disabled = !(running && activeJob.kind === "eccEnc");
+  $("eccAttackCancel").disabled = !(running && activeJob.kind === "eccAttack");
+  $("expCancel").disabled = !(running && activeJob.kind === "runExp");
+  if (running) return;
+
+  // Derive enabled states strictly from current application state
+  const hasActiveQ = !!(state.localKey || (state.ecc && state.ecc.Q));
+  $("eccEnc").disabled = !(state.norm && hasActiveQ);
+  $("eccDec").disabled = !canLocalDecrypt();
+  $("eccExport").disabled = !state.ecc;
+  $("eccAttack").disabled = !state.ecc;
+  $("byteIdx").disabled = !(state.ecc && state.ecc.source === "local" && state.ecc.msgBytes && state.ecc.msgBytes.length > 0);
+  $("expCsv").disabled = !state.exp;
+}
+
+function startExclusiveJob(kind) {
+  if (activeJob) activeJob.cancel();
+  fileReadToken++;
+  const token = ++jobCounter;
+  let cancelled = false;
+  activeJob = { token, kind, isCurrent: () => !!activeJob && activeJob.token === token, isCancelled: () => cancelled || !activeJob || activeJob.token !== token, cancel: () => { cancelled = true; } };
+  syncUIControls();
+  return activeJob;
+}
+
+function finishExclusiveJob(token) {
+  if (activeJob && activeJob.token === token) {
+    activeJob = null;
+    syncUIControls();
+  }
+}
+
+function cancelActiveJobIfAny() {
+  fileReadToken++;
+  if (activeJob) {
+    activeJob.cancel();
+    activeJob = null;
+    $("eccProg").style.width = "0";
+    $("attProg").style.width = "0";
+    $("expProg").style.width = "0";
+    syncUIControls();
+  }
+}
+
+function invalidateStats() {
+  $("statOut").textContent = "Inputs changed — click 'Compute histograms & entropy on current data' to refresh.";
+}
+function invalidateAttackOut(reason) {
+  $("attackOut").innerHTML = "<span class='note'>" + esc(reason || "Inputs changed — run the statistical attack again.") + "</span>";
+}
+function invalidateExp(reason) {
+  if (activeJob && activeJob.kind === "runExp") cancelActiveJobIfAny();
+  state.exp = null;
+  $("expOut").innerHTML = "<p class='note'>" + esc(reason || "not run (inputs changed)") + "</p>";
+  syncUIControls();
+}
+function clearEcc(msg) {
+  if (activeJob && (activeJob.kind === "eccEnc" || activeJob.kind === "eccAttack")) cancelActiveJobIfAny();
+  state.ecc = null;
+  $("byteIdx").innerHTML = "<option>—</option>";
+  $("byteOut").textContent = "Encrypt a message locally to inspect its per-byte curve points.";
+  $("decOut").textContent = "";
+  $("pubOut").textContent = "Nothing published yet.";
+  $("importOut").textContent = "";
+  updateKeyStatusView();
+  if (msg) $("eccOut").textContent = msg;
+  $("eccAttackOut").textContent = "Generate a key and encrypt (or import) a ciphertext first.";
+  invalidateStats();
+  syncUIControls();
+}
+function invalidateMessage() {
+  cancelActiveJobIfAny();
+  state.norm = null;
+  $("normOut").textContent = "Message edited — normalize again to update the shared input.";
+  $("normInfo").textContent = "Normalization required.";
+  state.caesarValid = false;
+  clearEcc("Message edited — normalize and encrypt again.");
+  $("caesarOut").className = "note";
+  $("caesarOut").textContent = "Message edited — normalize first.";
+  invalidateStats();
+  syncUIControls();
+}
+function invalidateCaesarShift() {
+  state.caesarValid = false;
+  $("caesarOut").className = "note";
+  $("caesarOut").textContent = "Shift key s changed — click Encrypt or Decrypt to update.";
+  invalidateStats();
+}
+function markModelStale() {
+  fileReadToken++;
+  $("modelOut").innerHTML = "<p class='note'>Corpus edited — rebuild the model to refresh frequencies.</p>";
+  if (activeJob && activeJob.kind === "runExp") cancelActiveJobIfAny();
+  if (state.model) {
+    state.modelStale = true;
+    $("corpusInfo").innerHTML = "<span class='tag stale'>corpus edited — rebuild model</span>";
+  }
+  invalidateAttackOut("Corpus changed — rebuild model and re-run the attack.");
+  invalidateExp("not run (corpus changed — rebuild model and run experiments)");
+}
+
+$("msgIn").addEventListener("input", invalidateMessage);
+$("caesarS").addEventListener("input", invalidateCaesarShift);
+$("attackIn").addEventListener("input", () => invalidateAttackOut("Ciphertext edited — click 'Run statistical attack' to score."));
+$("corpusIn").addEventListener("input", markModelStale);
+$("evalIn").addEventListener("input", () => invalidateExp("not run (evaluation text changed)"));
+$("trials").addEventListener("input", () => invalidateExp("not run (trial count changed)"));
+$("seed").addEventListener("input", () => invalidateExp("not run (PRNG seed changed)"));
+$("Bsearch").addEventListener("input", () => {
+  if (state.ecc) $("eccAttackOut").innerHTML = "<span class='note'>Search bound B_search changed — click 'Recover k &amp; decrypt' to run with the new bound.</span>";
+});
+
+/* Tabs + Print preparation (expands all tabs for print and restores them after) */
+(function () {
+  const tabs = [["tabR","panelR"],["tabS","panelS"],["tabP","panelP"]];
+  tabs.forEach(([t,]) => $(t).addEventListener("click", () => {
+    tabs.forEach(([tt, pp]) => { const sel = tt === t; $(tt).setAttribute("aria-selected", sel); $(pp).hidden = !sel; });
+  }));
+  tabs.forEach(([t], i) => {
+    $(t).tabIndex = i === 0 ? 0 : -1;
+    $(t).addEventListener("click", () => tabs.forEach(([tt]) => $(tt).tabIndex = tt === t ? 0 : -1));
+    $(t).addEventListener("keydown", e => {
+      const j = e.key === "ArrowRight" ? (i + 1) % 3 : e.key === "ArrowLeft" ? (i + 2) % 3 : e.key === "Home" ? 0 : e.key === "End" ? 2 : -1;
+      if (j >= 0) { e.preventDefault(); $(tabs[j][0]).click(); $(tabs[j][0]).focus(); }
+    });
+  });
+  $("printBtn").onclick = () => window.print();
+  let savedTabState = null;
+  window.addEventListener("beforeprint", () => {
+    savedTabState = tabs.map(([tt, pp]) => [tt, pp, $(pp).hidden]);
+    tabs.forEach(([, pp]) => { $(pp).hidden = false; });
+  });
+  window.addEventListener("afterprint", () => {
+    if (savedTabState) savedTabState.forEach(([tt, pp, hid]) => { $(pp).hidden = hid; });
+  });
+})();
+
+/* ========================= 1. Normalize ========================= */
+function doNormalize() {
+  if (activeJob) return;
+  fileReadToken++;
+  const raw = $("msgIn").value;
+  const pre = raw.replace(/[\r\n\t]+/g, " ");
+  const decomposed = pre.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+  let out = "", dropped = [], ws = (raw.match(/[\r\n\t]/g) || []).length;
+  for (const ch of decomposed) { const c = ch.codePointAt(0);
+    if (c >= 32 && c <= 126) out += ch; else dropped.push(ch); }
+  state.norm = out;
+  state.caesarValid = false;
+  clearEcc("Normalized — switch to the Sender tab to encrypt.");
+  $("normInfo").textContent = out.length + " printable ASCII chars, " + letterCounts(out).total + " A–Z letters · " +
+    ws + " newline/tab→space · " + dropped.length + " dropped" + (dropped.length ? " (" + dropped.slice(0, 16).join(" ") + ")" : "");
+  $("normOut").innerHTML = "<h4>Original</h4><pre>" + esc(raw) + "</pre><h4>Normalized (shared input to ECC &amp; Caesar)</h4><pre>" + esc(out) + "</pre>";
+  const s = readInt("caesarS", 0, 25);
+  $("attackIn").value = caesar(out, s === null ? 3 : s, false);
+  invalidateAttackOut("Normalized message updated — click 'Run statistical attack' to score.");
+  $("caesarOut").className = "note"; $("caesarOut").textContent = "Normalized. Click Encrypt in Section 3 to generate Caesar ciphertext.";
+  syncUIControls();
+}
+$("normBtn").onclick = doNormalize;
+
+/* ========================= 2. ECC ========================= */
+function updateKeyStatusView() {
+  if (!state.localKey) {
+    $("keyOut").innerHTML = "No local key pair generated yet.";
+    return;
+  }
+  const matchNote = state.ecc
+    ? (eqPt(state.localKey.Q, state.ecc.Q)
+        ? " <span class='tag ok'>matches active ciphertext Q</span>"
+        : " <span class='tag stale'>differs from imported ciphertext Q</span>")
+    : "";
+  $("keyOut").innerHTML = "<span class='tag ok'>local key pair ready</span> Q_local = <span class='mono'>" + ptShort(state.localKey.Q) +
+    "</span> <span class='note'>(k_local hidden; B_key = " + state.localKey.B + ")</span>" + matchNote;
+}
+
+function genKey() {
+  if (activeJob) return;
+  const Bk = readInt("Bkey", 1, 50000); if (Bk === null) return;
+  const kv = readInt("kval", 1, Bk, { allowEmpty: true }); if (kv === null && $("kval").value.trim() !== "") return;
+  const k = (kv === null) ? randScalar(BigInt(Bk)) : BigInt(kv);
+  const Q = mulPt(k, G);
+  state.localKey = { k, Q, B: Bk };
+  $("kReveal").hidden = true; $("kReveal").textContent = "";
+  fileReadToken++;
+  if (state.ecc && state.ecc.source === "imported") {
+    $("decOut").textContent = "Local key changed — decrypt if it matches the imported public Q.";
+    $("importOut").textContent = "Imported ciphertext retained. The recipient status shows whether the new key matches.";
+  } else clearEcc(state.norm ? "New key pair generated — go to Sender tab to encrypt." : "New key pair generated — normalize a message first.");
+  updateKeyStatusView();
+  syncUIControls();
+}
+$("genKey").onclick = genKey;
+
+$("revealK").onclick = () => {
+  const el = $("kReveal");
+  if (!state.localKey || state.localKey.k == null) {
+    el.hidden = false;
+    el.textContent = "No local private key generated yet.";
+    return;
+  }
+  el.hidden = !el.hidden;
+  el.innerHTML = el.hidden ? "" : "Local private key k_local = <span class='key'>" + state.localKey.k.toString() + "</span> <span class='note'>(didactic view; never passed to attack functions)</span>";
+};
+
+function renderSelectedByte() {
+  if (!state.ecc || state.ecc.source !== "local" || !state.ecc.msgBytes) {
+    $("byteOut").innerHTML = "<span class='note'>Imported public ciphertext: sender-only secrets r and S are not present in public exports.</span>";
+    return;
+  }
+  const idx = Number($("byteIdx").value) || 0;
+  const b0 = state.ecc.msgBytes[idx], c0 = state.ecc.ct[idx];
+  if (!c0) return;
+  $("byteOut").innerHTML =
+    "<p class='note'>Byte #" + idx + " = <code>'" + esc(String.fromCharCode(b0)) + "'</code> (byte value " + b0 + "). Decryption identity: <code>C − kR = (M_b + rQ) − k(rG) = M_b</code>.</p>" +
+    "<div class='tableWrap'><table><tr><th>Quantity</th><th>Visibility</th><th>Value</th></tr>" +
+    "<tr><td>M_b = (b+1)G</td><td>Public encoding table</td><td class='mono'>" + ptShort(encTable[b0]) + "</td></tr>" +
+    "<tr><td>r (ephemeral scalar)</td><td>Sender secret only</td><td class='mono'>" + (c0._r ? shortHex(c0._r.toString(16)) : "hidden") + "</td></tr>" +
+    "<tr><td>R = rG</td><td>Public (in ciphertext)</td><td class='mono'>" + ptShort(c0.R) + "</td></tr>" +
+    "<tr><td>S = rQ = krG</td><td>Shared mask secret</td><td class='mono'>" + (c0._S ? ptShort(c0._S) : "hidden") + "</td></tr>" +
+    "<tr><td>C = M_b + S</td><td>Public (in ciphertext)</td><td class='mono'>" + ptShort(c0.C) + "</td></tr>" +
+    "</table></div>";
+}
+$("byteIdx").onchange = renderSelectedByte;
+
+function buildPublicBundleObject(eccSnap) {
+  return {
+    scheme: "didactic EC ElGamal per byte on secp256k1",
+    curve: "secp256k1 (SEC 2)",
+    encoding: "byte b -> (b+1)G; ciphertext byte = (R, C)",
+    Q: ptJSON(eccSnap.Q),
+    ciphertext: eccSnap.ct.map(ct => ({ R: ptJSON(ct.R), C: ptJSON(ct.C) }))
+  };
+}
+
+async function runEccEncryptJob(normSnap, Qsnap, limit) {
+  const bytes = [];
+  for (const ch of normSnap) { const c = ch.charCodeAt(0); if (c <= 255) bytes.push(c); }
+  if (bytes.length === 0) { $("eccOut").innerHTML = "<span class='tag no'>message is empty (0 bytes)</span>"; return null; }
+  if (bytes.length > limit) {
+    $("eccOut").innerHTML = "<span class='tag no'>message has " + bytes.length + " bytes &gt; limit " +
+      limit + "</span> — shorten the message or raise the limit (no silent truncation).";
+    return null;
+  }
+  clearEcc("Encrypting the normalized message…");
+  const job = startExclusiveJob("eccEnc");
+  const ct = [];
+  try {
+    for (let i = 0; i < bytes.length; i++) {
+      if (job.isCancelled()) break;
+      ct.push(eccEncryptByte(bytes[i], Qsnap));
+      $("eccProg").style.width = ((i + 1) / bytes.length * 100) + "%";
+      if (i % 2 === 1) await new Promise(r => setTimeout(r, 0));
+    }
+    if (job.isCancelled()) {
+      if (job.isCurrent()) $("eccOut").textContent = "Encryption cancelled — no partial ciphertext was published.";
+      return null;
+    }
+    const bundleObj = buildPublicBundleObject({ Q: Qsnap, ct });
+    const jsonBytes = new Blob([JSON.stringify(bundleObj, null, 2)], { type: "application/json" }).size;
+    state.ecc = { ct, Q: Qsnap, msgBytes: bytes.slice(), source: "local", jsonBytes };
+    $("eccOut").innerHTML = "<span class='tag ok'>encrypted</span> " + ct.length +
+      " bytes into point pairs (R_i, C_i) under Q = <span class='mono'>" + ptShort(Qsnap) + "</span>. " +
+      "Finite-point raw coordinates: " + (ct.flatMap(c => [c.R,c.C]).filter(p => p !== O).length * 64) + " B; exported JSON: " + jsonBytes + " B (" + (jsonBytes / ct.length).toFixed(1) + "×).";
+    $("byteIdx").innerHTML = bytes.map((b, i) => "<option value='" + i + "'>Byte #" + i + " ('" + esc(String.fromCharCode(b)) + "', byte " + b + ")</option>").join("");
+    renderSelectedByte();
+    publishPublic();
+    updateKeyStatusView();
+    $("decOut").textContent = "";
+    $("eccAttackOut").textContent = "Ready to run exhaustive key recovery on the active ciphertext.";
+    invalidateStats();
+    return state.ecc;
+  } catch (err) {
+    if (!job.isCancelled()) $("eccOut").innerHTML = "<span class='tag no'>encryption error: " + esc(err.message) + "</span>";
+    return null;
+  } finally {
+    if (job.isCurrent()) $("eccProg").style.width = "0";
+    finishExclusiveJob(job.token);
+  }
+}
+
+$("eccEnc").onclick = () => {
+  if (activeJob) return;
+  if (!state.norm) { $("eccOut").textContent = "Normalize a message first."; return; }
+  const targetQ = state.ecc ? state.ecc.Q : (state.localKey ? state.localKey.Q : null);
+  if (!targetQ) { $("eccOut").textContent = "Generate a key pair (or import a public key) first."; return; }
+  const limit = readInt("eccLimit", 1, 128); if (limit === null) return;
+  runEccEncryptJob(state.norm, targetQ, limit);
+};
+$("eccCancel").onclick = () => { if (activeJob && activeJob.kind === "eccEnc") activeJob.cancel(); };
+
+function publishPublic() {
+  if (!state.ecc) { $("pubOut").textContent = "Nothing published yet."; return; }
+  const n = state.ecc.ct.length;
+  const preview = state.ecc.ct.slice(0, 3).map((c, i) => "Byte #" + i + ": R=" + ptShort(c.R) + ", C=" + ptShort(c.C)).join("\n");
+  let allRows = "";
+  for (let i = 0; i < n; i++) {
+    const c = state.ecc.ct[i];
+    allRows += "<tr><td class='n'>" + i + "</td><td class='mono'>" + esc(ptFullHex(c.R)) + "</td><td class='mono'>" + esc(ptFullHex(c.C)) + "</td></tr>";
+  }
+  const points = state.ecc.ct.flatMap(c => [c.R, c.C]);
+  const infinities = points.filter(p => p === O).length;
+  const finite = points.length - infinities;
+  const rawCoordBytes = finite * 64, sec1Uncomp = finite * 65 + infinities, sec1Comp = finite * 33 + infinities, jsonB = state.ecc.jsonBytes || 0;
+  $("pubOut").innerHTML =
+    "<span class='tag ok'>target public key Q</span> <span class='mono'>" + ptShort(state.ecc.Q) + "</span> " +
+    "<span class='note'>(" + n + " ciphertext pairs; source: " + state.ecc.source + "; raw coordinates: " + rawCoordBytes +
+    " B (finite points only), SEC1 uncompressed: " + sec1Uncomp + " B, SEC1 compressed: " + sec1Comp + " B" +
+    (jsonB ? ", exported JSON: " + jsonB + " B" : "") + ")</span>" +
+    "<pre>" + esc(preview + (n > 3 ? "\n… (" + (n - 3) + " more pairs)" : "")) + "</pre>" +
+    "<details class='print-hide'><summary>Expand full 256-bit coordinates for Q and all " + n + " (R_i, C_i) pairs</summary>" +
+    "<p class='mono' style='font-size:.78rem;word-break:break-all'><b>Q</b> = " + esc(ptFullHex(state.ecc.Q)) + "</p>" +
+    "<div class='tableWrap'><table><tr><th class='n'>Byte</th><th>R_i = r_i·G (full hex)</th><th>C_i = M_b + r_i·Q (full hex)</th></tr>" + allRows + "</table></div></details>";
+}
+
+function eccDecrypt() {
+  if (activeJob) return;
+  if (!state.ecc) { $("decOut").textContent = "Nothing to decrypt."; return; }
+  if (!state.localKey || state.localKey.k == null) {
+    $("decOut").innerHTML = "<span class='tag no'>no local private key</span> — generate a matching key pair or use Section 6 key recovery.";
+    return;
+  }
+  if (!eqPt(state.localKey.Q, state.ecc.Q)) {
+    $("decOut").innerHTML = "<span class='tag no'>public key mismatch</span> — local Q_local does not match the active ciphertext's Q. Use Section 6 to recover the key for this Q.";
+    return;
+  }
+  try {
+    let s = ""; for (const ct of state.ecc.ct) s += String.fromCharCode(eccDecryptByte(ct, state.localKey.k));
+    let verdict;
+    if (state.ecc.msgBytes) {
+      const orig = state.ecc.msgBytes.map(b => String.fromCharCode(b)).join("");
+      verdict = s === orig ? "<span class='tag ok'>round trip verified (matches snapshotted plaintext)</span>" : "<span class='tag no'>MISMATCH</span>";
+    } else if (state.norm && s === state.norm) {
+      verdict = "<span class='tag ok'>decrypted imported ciphertext with matching local key (matches current normalized message)</span>";
+    } else {
+      verdict = "<span class='tag ok'>decrypted imported ciphertext using matching local key k_local</span>";
+    }
+    $("decOut").innerHTML = "<pre>" + esc(s) + "</pre>" + verdict;
+  } catch (e) { $("decOut").innerHTML = "<span class='tag no'>" + esc(e.message) + "</span>"; }
+}
+$("eccDec").onclick = eccDecrypt;
+
+$("eccExport").onclick = () => {
+  if (!state.ecc || activeJob) return;
+  const data = buildPublicBundleObject(state.ecc);
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "ecc_ciphertext.json"; a.click(); URL.revokeObjectURL(a.href);
+};
+
+function parsePublicBundleObject(data) {
+  if (!data || typeof data !== "object") throw new Error("not a JSON object");
+  const Q = ptFromJSON(data.Q, false);
+  if (!Array.isArray(data.ciphertext) || data.ciphertext.length === 0) throw new Error("ciphertext must be a non-empty array");
+  if (data.ciphertext.length > 128) throw new Error("too many pairs (>128)");
+  const ct = data.ciphertext.map((e, i) => {
+    if (!e || typeof e !== "object") throw new Error("pair " + i + " malformed");
+    return { R: ptFromJSON(e.R, false), C: ptFromJSON(e.C, true) };
+  });
+  return { Q, ct };
+}
+function importPublicBundleObject(data, jsonBytes = 0) {
+  const { Q, ct } = parsePublicBundleObject(data);
+  cancelActiveJobIfAny();
+  // Preserve state.localKey intact! Do not overwrite it.
+  state.ecc = { ct, Q, msgBytes: null, source: "imported", jsonBytes };
+  $("byteIdx").innerHTML = "<option>—</option>";
+  renderSelectedByte();
+  $("decOut").textContent = "";
+  $("eccOut").textContent = "Public ciphertext imported. Sender secrets are unavailable; encryption uses this imported Q.";
+  const matchesLocal = canLocalDecrypt();
+  $("importOut").innerHTML = "<span class='tag ok'>imported</span> " + ct.length + " point pairs for Q = <span class='mono'>" + ptShort(Q) + "</span>. " +
+    (matchesLocal
+      ? "<span class='tag ok'>matches local key pair — direct recipient decryption enabled</span>"
+      : (state.localKey
+          ? "<span class='tag stale'>Q differs from local Q_local — recipient decrypt disabled; use Section 6 attack</span>"
+          : "<span class='note'>No local key pair loaded; use Section 6 attack to recover k.</span>"));
+  $("eccAttackOut").textContent = "Ready to attack the imported public key and ciphertext.";
+  updateKeyStatusView();
+  publishPublic();
+  invalidateStats();
+  syncUIControls();
+}
+
+$("eccImport").onchange = ev => {
+  const file = ev.target.files[0]; if (!file) return;
+  if (file.size > 2_000_000) { $("importOut").innerHTML = "<span class='tag no'>file too large (&gt;2 MB)</span>"; ev.target.value = ""; return; }
+  const myReadToken = ++fileReadToken;
+  const reader = new FileReader();
+  reader.onload = () => {
+    if (myReadToken !== fileReadToken || activeJob) { ev.target.value = ""; return; }
+    try {
+      const rawText = String(reader.result);
+      const data = JSON.parse(rawText);
+      importPublicBundleObject(data, new Blob([rawText]).size);
+    } catch (e) { $("importOut").innerHTML = "<span class='tag no'>import error: " + esc(e.message) + "</span>"; }
+    finally { ev.target.value = ""; }
+  };
+  reader.onerror = () => { if (myReadToken === fileReadToken) $("importOut").textContent = "Unable to read this file."; ev.target.value = ""; };
+  reader.readAsText(file);
+};
+
+/* ========================= 3. Caesar ========================= */
+$("caesarEnc").onclick = () => {
+  if (activeJob) return;
+  if (!state.norm) { $("caesarOut").textContent = "Normalize a message first."; return; }
+  const s = readInt("caesarS", 0, 25); if (s === null) return;
+  const ciph = caesar(state.norm, s, false);
+  state.caesarValid = true;
+  $("caesarOut").className = "";
+  $("caesarOut").innerHTML = "<h4>Ciphertext (shift s = " + s + ")</h4><pre>" + esc(ciph) + "</pre><p class='note'>Copied into Section 4 attack input.</p>";
+  $("attackIn").value = ciph;
+  invalidateAttackOut("New Caesar ciphertext copied — click 'Run statistical attack' to score.");
+  invalidateStats();
+};
+$("caesarDec").onclick = () => {
+  if (activeJob) return;
+  if (!state.norm) { $("caesarOut").textContent = "Normalize a message first."; return; }
+  const s = readInt("caesarS", 0, 25); if (s === null) return;
+  const ciph = caesar(state.norm, s, false), back = caesar(ciph, s, true);
+  state.caesarValid = true;
+  $("caesarOut").className = "";
+  $("caesarOut").innerHTML = "<pre>Ciphertext (s=" + s + "): " + esc(ciph) + "\nDecrypted:        " + esc(back) + "</pre><p>Round-trip check: " +
+    (back === state.norm ? "<span class='tag ok'>verified equal to normalized message</span>" : "<span class='tag no'>MISMATCH</span>") + "</p>";
+  invalidateStats();
+};
+
+/* ========================= 4. Corpus model + Caesar statistical attack ========================= */
+function svgLetters(series, caption) {
+  const W = 700, H = 232, L = 48, Bm = 28, Tp = 28, pw = W - L - 12, ph = H - Tp - Bm;
+  const max = Math.max(1e-9, ...series.flatMap(s => s.values));
+  const yMax = Math.min(1, Math.ceil((max * 100) / 5) * 5 / 100 || 0.15);
+  const n = 26, gw = pw / n, bw = gw / (series.length + 0.45);
+  let grid = "", bars = "";
+  for (let k = 0; k <= 4; k++) {
+    const val = (yMax * k) / 4;
+    const y = Tp + ph * (1 - val / yMax);
+    grid += "<line x1='" + L + "' y1='" + y.toFixed(1) + "' x2='" + (W - 12) + "' y2='" + y.toFixed(1) + "' stroke='#e4eaf4'/>" +
+      "<text x='" + (L - 6) + "' y='" + (y + 3).toFixed(1) + "' font-size='9' text-anchor='end' fill='#5a667c'>" + (val * 100).toFixed(1) + "%</text>";
+  }
+  grid += "<text x='" + L + "' y='12' font-size='9' fill='#5a667c'>Relative frequency (%)</text>";
+  for (let i = 0; i < 26; i++) {
+    series.forEach((s, si) => {
+      const v = s.values[i];
+      const h = v > 0 ? (v / yMax) * ph : 0;
+      const x = L + i * gw + si * bw + gw * 0.1, y = Tp + ph - h;
+      bars += "<rect x='" + x.toFixed(1) + "' y='" + y.toFixed(1) + "' width='" + (bw * 0.9).toFixed(1) + "' height='" + Math.max(0, h).toFixed(1) + "' fill='" + s.color + "'/>";
+    });
+    bars += "<text x='" + (L + i * gw + gw / 2).toFixed(1) + "' y='" + (H - 10) + "' font-size='9' text-anchor='middle' fill='#1b2435'>" + String.fromCharCode(65 + i) + "</text>";
+  }
+  const leg = series.map((s, i) => "<rect x='" + (L + 135 + i * 175) + "' y='3' width='10' height='10' fill='" + s.color + "'/><text x='" + (L + 149 + i * 175) + "' y='12' font-size='10' fill='#1b2435'>" + esc(s.name) + "</text>").join("");
+  return "<div class='svgbox'><svg viewBox='0 0 " + W + " " + H + "' role='img' aria-label='" + esc(caption) + "'>" +
+    grid + "<line x1='" + L + "' y1='" + (Tp + ph) + "' x2='" + (W - 12) + "' y2='" + (Tp + ph) + "' stroke='#1b2435' stroke-width='1'/>" +
+    bars + leg + "</svg></div>";
+}
+
+function buildModel(corpus) {
+  const clean = lettersOnly(corpus);
+  const total = clean.length;
+  if (total === 0) return null;
+  const c = new Array(26).fill(0);
+  for (let i = 0; i < total; i++) c[clean.charCodeAt(i) - Acode]++;
+  // Unigram additive smoothing with alpha = 0.5: f_i = (count_i + 0.5) / (T + 13)
+  const f = c.map(ci => (ci + 0.5) / (total + 26 * 0.5));
+  // Bigram smoothed log-probabilities over the exact same lettersOnly(corpus) stream
+  const bg = Array.from({ length: 26 }, () => new Array(26).fill(0.5));
+  let bgTotal = 26 * 26 * 0.5;
+  for (let i = 0; i + 1 < total; i++) {
+    const a = clean.charCodeAt(i) - Acode, b = clean.charCodeAt(i + 1) - Acode;
+    bg[a][b] += 1;
+    bgTotal += 1;
+  }
+  const logBg = bg.map(row => row.map(v => Math.log(v / bgTotal)));
+  return { f, T: total, counts: c, logBg, id: ++modelSeq, fp: textFingerprint(corpus) };
+}
+
+function showModel() {
+  if (activeJob) return null;
+  fileReadToken++;
+  const corpus = $("corpusIn").value;
+  invalidateExp("not run (language model rebuilt — click 'Run length experiments')");
+  invalidateAttackOut("Language model rebuilt — click 'Run statistical attack' to score.");
+  const m = buildModel(corpus);
+  if (!m) {
+    state.model = null; state.modelStale = false;
+    $("corpusInfo").innerHTML = "<span class='tag no'>no A–Z letters</span>";
+    $("modelOut").innerHTML = "<span class='tag no'>no A–Z letters in corpus</span>";
+    syncUIControls();
+    return null;
+  }
+  state.model = m; state.modelStale = false;
+  if ($("corpusCountNote")) $("corpusCountNote").textContent = m.T.toLocaleString("en-US") + " A–Z letters";
+  let warn = "";
+  if (m.T < 2000) warn += " <span class='tag stale'>small corpus (&lt;2000 letters)</span>";
+  if (lettersOnly(corpus) === lettersOnly($("evalIn").value)) warn += " <span class='tag no'>corpus letters identical to evaluation text</span>";
+  $("corpusInfo").innerHTML = "<span class='tag ok'>model #" + m.id + " ready</span> T = <b>" + m.T.toLocaleString("en-US") + "</b> A–Z letters (" + esc(m.fp) + ")" + warn;
+  const order = m.f.map((f, i) => [i, f]).sort((a, b) => b[1] - a[1]);
+  let rows = ""; for (let i = 0; i < 26; i++) rows += "<tr><td>" + String.fromCharCode(65 + i) + "</td><td class='n'>" + m.counts[i] + "</td><td class='n'>" + (m.f[i] * 100).toFixed(2) + "%</td></tr>";
+  $("modelOut").innerHTML = "<h4>Smoothed unigram frequencies from corpus (top 5: " + order.slice(0, 5).map(o => String.fromCharCode(65 + o[0]) + " " + (o[1] * 100).toFixed(1) + "%").join(", ") + ")</h4>" +
+    svgLetters([{ name: "Corpus probability f_i", color: "#2f54c9", values: m.f }], "Corpus letter frequencies A to Z") +
+    "<details class='print-hide'><summary>Full 26-letter frequency table (count &amp; add-half smoothed f_i)</summary><div class='tableWrap'><table><tr><th>Letter</th><th class='n'>Count</th><th class='n'>Smoothed f_i</th></tr>" + rows + "</table></div></details>";
+  syncUIControls();
+  return m;
+}
+$("buildModel").onclick = showModel;
+$("corpusFile").onchange = ev => {
+  const f = ev.target.files[0]; if (!f) return;
+  if (f.size > 2_000_000) { $("corpusInfo").textContent = "Please use a text file no larger than 2 MB."; ev.target.value = ""; return; }
+  const myReadToken = ++fileReadToken;
+  const r = new FileReader();
+  r.onload = () => {
+    if (myReadToken !== fileReadToken || activeJob) { ev.target.value = ""; return; }
+    $("corpusIn").value = String(r.result);
+    showModel();
+    ev.target.value = "";
+  };
+  r.onerror = () => { if (myReadToken === fileReadToken) $("corpusInfo").textContent = "Unable to read this file."; ev.target.value = ""; };
+  r.readAsText(f);
+};
+
+const TIE_TOL = 1e-9;
+function attackCaesar(ciphertext, model) {
+  if (!model) return { status: "no model" };
+  const rawUp = String(ciphertext).toUpperCase();
+  const clean = lettersOnly(rawUp);
+  const Nn = clean.length;
+  if (Nn === 0) return { status: "insufficient data", N: 0 };
+
+  const obs = new Array(26).fill(0);
+  for (let i = 0; i < Nn; i++) obs[clean.charCodeAt(i) - Acode]++;
+
+  // 1. Most-common-letter -> E heuristic (with explicit tie detection)
+  let maxCnt = -1, topIndices = [];
+  for (let i = 0; i < 26; i++) {
+    if (obs[i] > maxCnt) { maxCnt = obs[i]; topIndices = [i]; }
+    else if (obs[i] === maxCnt) { topIndices.push(i); }
+  }
+  const mclTie = topIndices.length > 1;
+  const mclShift = mclTie ? null : (topIndices[0] - 4 + 26) % 26;
+  const mclCandidates = topIndices.map(idx => (idx - 4 + 26) % 26);
+
+  // 2. Chi-squared unigram & 3. Bigram log-likelihood over the exact same `clean` A-Z string
+  const hasBigrams = Nn >= 2;
+  const results = [];
+  for (let s = 0; s < 26; s++) {
+    let chi2 = 0;
+    for (let i = 0; i < 26; i++) {
+      const Oi = obs[(i + s) % 26], Ei = Nn * model.f[i];
+      chi2 += (Oi - Ei) * (Oi - Ei) / Ei;
+    }
+    let bgScore = null;
+    if (hasBigrams) {
+      let sumLog = 0;
+      for (let k = 0; k + 1 < Nn; k++) {
+        const c1 = (clean.charCodeAt(k) - Acode - s + 26) % 26;
+        const c2 = (clean.charCodeAt(k + 1) - Acode - s + 26) % 26;
+        sumLog += model.logBg[c1][c2];
+      }
+      bgScore = sumLog;
+    }
+    results.push({ s, chi2, bgScore });
+  }
+
+  // Independent sorting and tie detection for Chi-squared
+  const chiRank = results.slice().sort((a, b) => a.chi2 - b.chi2 || a.s - b.s);
+  const minChi2 = chiRank[0].chi2;
+  const chiTied = chiRank.filter(r => Math.abs(r.chi2 - minChi2) <= TIE_TOL);
+  const chiTie = chiTied.length > 1;
+  const bestChi = chiTie ? null : chiRank[0].s;
+
+  // Independent sorting and tie detection for Bigrams (never inherits Chi-squared order)
+  let bgStatus = "insufficient data", bgTie = false, bestBg = null, bestBgScore = null, bgTiedShifts = [];
+  if (hasBigrams) {
+    bgStatus = "ok";
+    const bgRank = results.slice().sort((a, b) => b.bgScore - a.bgScore || a.s - b.s);
+    bestBgScore = bgRank[0].bgScore;
+    const bgTied = bgRank.filter(r => Math.abs(r.bgScore - bestBgScore) <= TIE_TOL);
+    bgTie = bgTied.length > 1;
+    bestBg = bgTie ? null : bgRank[0].s;
+    bgTiedShifts = bgTied.map(r => r.s);
+  }
+
+  return {
+    status: "ok",
+    rawUp,
+    clean,
+    N: Nn,
+    results: chiRank,
+    best: bestChi,
+    topChiCandidate: chiRank[0].s,
+    bestChi2: minChi2,
+    tie: chiTie,
+    chiTiedShifts: chiTied.map(r => r.s),
+    bgStatus,
+    bestBg,
+    bestBgScore,
+    bgTie,
+    bgTiedShifts,
+    mclShift,
+    mclTie,
+    mclCandidates
+  };
+}
+
+$("runAttack").onclick = () => {
+  if (activeJob) return;
+  if (!state.model || state.modelStale) showModel();
+  if (!state.model) { $("attackOut").innerHTML = "<span class='tag no'>build a valid language model first</span>"; return; }
+  const res = attackCaesar($("attackIn").value, state.model);
+  if (res.status !== "ok") { $("attackOut").innerHTML = "<span class='tag wait'>insufficient data (0 A–Z letters in ciphertext)</span>"; return; }
+  const previewShift = res.best !== null ? res.best : res.topChiCandidate;
+  const bestFull = caesar(res.rawUp, previewShift, true);
+  let rows = "";
+  res.results.forEach((r, idx) => {
+    const bgCell = r.bgScore === null ? "<span class='note'>insufficient data</span>" : r.bgScore.toFixed(2);
+    rows += "<tr" + (idx === 0 ? " style='background:#fdf3dd'" : "") + "><td class='n'>" + (idx + 1) + "</td><td class='n'><b>" + r.s + "</b></td><td class='n'>" + r.chi2.toFixed(2) +
+      "</td><td class='n'>" + bgCell + "</td><td class='mono'>" + esc(caesar(res.rawUp, r.s, true).slice(0, 48)) + "</td></tr>";
+  });
+
+  const chiBadge = res.tie
+    ? "<span class='tag stale'>tie between s ∈ {" + res.chiTiedShifts.join(", ") + "} — no unique winner</span>"
+    : "<span class='key'>s = " + res.best + "</span> (χ² = " + res.bestChi2.toFixed(2) + ")";
+  const bgBadge = res.bgStatus !== "ok"
+    ? "<span class='tag wait'>insufficient data (need ≥2 A–Z letters)</span>"
+    : (res.bgTie
+        ? "<span class='tag stale'>tie between s ∈ {" + res.bgTiedShifts.join(", ") + "}</span>"
+        : "<span class='mono'><b>s = " + res.bestBg + "</b></span> (log L = " + res.bestBgScore.toFixed(2) + ")");
+  const mclBadge = res.mclTie
+    ? "<span class='tag stale'>tie for max frequency → shifts {" + res.mclCandidates.join(", ") + "}</span>"
+    : "<span class='mono'><b>s = " + res.mclShift + "</b></span>";
+
+  $("attackOut").innerHTML =
+    "<p class='note'>Scored <b>N = " + res.N + "</b> A–Z letters against model #" + state.model.id + " (T = " + state.model.T.toLocaleString("en-US") + ").</p>" +
+    "<ul>" +
+    "<li><b>Unigram χ² estimate:</b> " + chiBadge + "</li>" +
+    "<li><b>Bigram (2-gram) log-likelihood estimate:</b> " + bgBadge + "</li>" +
+    "<li><b>Most-common-letter → E heuristic:</b> " + mclBadge + "</li>" +
+    "</ul>" +
+    "<h4>Candidate Decryption Preview (shift s = " + previewShift + (res.tie ? ", tied lowest χ²" : "") + ")</h4><pre>" + esc(bestFull) + "</pre>" +
+    "<details open><summary>All 26 candidate shifts ranked by ascending χ²</summary><div class='tableWrap'><table><tr><th class='n'>Rank</th><th class='n'>Shift s</th><th class='n'>χ²(s) ↓</th><th class='n'>2-gram log L ↑</th><th>Candidate decryption preview</th></tr>" + rows + "</table></div></details>";
+};
+
+/* ========================= 5. Length experiments ========================= */
+async function runLengthExperimentsJob(modelSnap, evalRawSnap, trialsSnap, seedSnap) {
+  const evalLetters = lettersOnly(evalRawSnap);
+  const evalFp = textFingerprint(evalRawSnap);
+  const lengths = [10, 25, 50, 100, 250, 500];
+  const rng = mulberry32(seedSnap >>> 0);
+  state.exp = null;
+  $("expOut").innerHTML = "<p class='note'>Running length experiments…</p>";
+  const job = startExclusiveJob("runExp");
+  const rows = [];
+  let firstFail = null;
+  try {
+    for (let li = 0; li < lengths.length; li++) {
+      const L = lengths[li];
+      if (evalLetters.length < L) {
+        rows.push({ L, skipped: true });
+        continue;
+      }
+      const maxStart = evalLetters.length - L;
+      const starts = new Set();
+      let done = 0;
+      let chiSucc = 0, chiTies = 0, chiInsuff = 0;
+      let bgSucc = 0, bgTies = 0, bgInsuff = 0;
+      let mclSucc = 0, mclTies = 0, mclInsuff = 0;
+
+      for (let t = 0; t < trialsSnap; t++) {
+        if (job.isCancelled()) break;
+        const start = Math.floor(rng() * (maxStart + 1));
+        starts.add(start);
+        const sTrue = Math.floor(rng() * 26);
+        const plain = evalLetters.slice(start, start + L);
+        const ciph = caesar(plain, sTrue, false);
+        const res = attackCaesar(ciph, modelSnap); // strictly isolated: receives only ciphertext + snapshotted model
+        done++;
+
+        if (res.status !== "ok") {
+          chiInsuff++; bgInsuff++; mclInsuff++;
+          continue;
+        }
+        // Policy: success iff unique candidate equals sTrue
+        if (res.tie) chiTies++;
+        else if (res.best === sTrue) chiSucc++;
+
+        if (res.bgStatus !== "ok") bgInsuff++;
+        else if (res.bgTie) bgTies++;
+        else if (res.bestBg === sTrue) bgSucc++;
+
+        if (res.mclTie) mclTies++;
+        else if (res.mclShift === sTrue) mclSucc++;
+
+        if ((res.tie || res.best !== sTrue) && !firstFail) {
+          const candShift = res.best !== null ? res.best : res.topChiCandidate;
+          firstFail = {
+            L, sTrue, est: res.best, tie: res.tie, tiedShifts: res.chiTiedShifts,
+            plain: plain.slice(0, 48), cipher: ciph.slice(0, 48),
+            candidate: caesar(ciph, candShift, true).slice(0, 48),
+            candShift, chi2: res.bestChi2
+          };
+        }
+        if (t % 50 === 49) await new Promise(r => setTimeout(r, 0));
+      }
+      if (job.isCancelled()) {
+        if (job.isCurrent()) $("expOut").innerHTML = "<p class='note'>Cancelled — no partial results were committed.</p>";
+        return null;
+      }
+      $("expProg").style.width = ((li + 1) / lengths.length * 100) + "%";
+      rows.push({
+        L, skipped: false, trials: done, distinct: starts.size,
+        chiSucc, chiTies, chiInsuff, rate: done ? chiSucc / done : 0,
+        bgSucc, bgTies, bgInsuff, rateBg: done ? bgSucc / done : 0,
+        mclSucc, mclTies, mclInsuff, rateMcl: done ? mclSucc / done : 0
+      });
+    }
+    state.exp = {
+      rows, seed: seedSnap, trials: trialsSnap,
+      modelId: modelSnap.id, corpusT: modelSnap.T, corpusFp: modelSnap.fp,
+      evalLen: evalLetters.length, evalFp, firstFail
+    };
+    renderExp();
+    return state.exp;
+  } catch (err) {
+    if (job.isCurrent()) $("expOut").textContent = "Experiment error: " + err.message;
+    return null;
+  } finally {
+    if (job.isCurrent()) $("expProg").style.width = "0";
+    finishExclusiveJob(job.token);
+  }
+}
+
+$("runExp").onclick = () => {
+  if (activeJob) return;
+  if (!state.model || state.modelStale) showModel();
+  if (!state.model) { $("expOut").innerHTML = "<span class='tag no'>build a model first</span>"; return; }
+  const trials = readInt("trials", 1, 1000); if (trials === null) return;
+  const seed = readInt("seed", 0, 4294967295); if (seed === null) return;
+  const evalText = $("evalIn").value;
+  const evalLetters = lettersOnly(evalText);
+  if (evalLetters.length < 10) { $("expOut").innerHTML = "<span class='tag no'>evaluation text too short (need ≥10 A–Z letters)</span>"; return; }
+  if (evalLetters === lettersOnly($("corpusIn").value)) { $("expOut").innerHTML = "<span class='tag no'>evaluation text must be distinct from the training corpus</span>"; return; }
+  // Pass immutable snapshots of model and evaluation text
+  const modelSnap = {
+    id: state.model.id, T: state.model.T, fp: state.model.fp,
+    f: state.model.f.slice(), logBg: state.model.logBg.map(r => r.slice())
+  };
+  runLengthExperimentsJob(modelSnap, evalText, trials, seed);
+};
+$("expCancel").onclick = () => { if (activeJob && activeJob.kind === "runExp") activeJob.cancel(); };
+
+function svgExpChart(rows) {
+  const W = 700, H = 225, L = 46, Bm = 28, Tp = 28, pw = W - L - 16, ph = H - Tp - Bm;
+  const n = rows.length, gw = pw / n, bw = gw * 0.24;
+  let bars = "", grid = "";
+  [0, 0.25, 0.5, 0.75, 1].forEach(v => {
+    const y = Tp + ph * (1 - v);
+    grid += "<line x1='" + L + "' y1='" + y.toFixed(1) + "' x2='" + (W - 16) + "' y2='" + y.toFixed(1) + "' stroke='#e4eaf4'/>" +
+      "<text x='" + (L - 6) + "' y='" + (y + 3).toFixed(1) + "' font-size='9' text-anchor='end' fill='#5a667c'>" + Math.round(v * 100) + "%</text>";
+  });
+  grid += "<text x='" + L + "' y='12' font-size='9' fill='#5a667c'>Unique Top-1 Success (%)</text>";
+  rows.forEach((r, i) => {
+    const gx = L + i * gw + gw * 0.14;
+    if (!r.skipped) {
+      const series = [[r.rate, "#2f54c9"], [r.rateBg, "#1a7a56"], [r.rateMcl, "#9a6a0b"]];
+      series.forEach(([val, col], si) => {
+        const h = val > 0 ? val * ph : 0; // strictly 0 height for 0 value
+        const x = gx + si * bw, y = Tp + ph - h;
+        bars += "<rect x='" + x.toFixed(1) + "' y='" + y.toFixed(1) + "' width='" + (bw * 0.88).toFixed(1) + "' height='" + Math.max(0, h).toFixed(1) + "' fill='" + col + "'/>";
+      });
+      bars += "<text x='" + (gx + bw * 0.44).toFixed(1) + "' y='" + (Tp + ph - r.rate * ph - 4).toFixed(1) + "' font-size='9' text-anchor='middle' fill='#1b2435'>" + Math.round(r.rate * 100) + "%</text>";
+    } else {
+      bars += "<text x='" + (L + i * gw + gw / 2).toFixed(1) + "' y='" + (Tp + ph - 8) + "' font-size='9' text-anchor='middle' fill='#5a667c'>N/A</text>";
+    }
+    bars += "<text x='" + (L + i * gw + gw / 2).toFixed(1) + "' y='" + (H - 8) + "' font-size='10' text-anchor='middle' fill='#1b2435'>L=" + r.L + "</text>";
+  });
+  const leg = "<rect x='" + (L + 150) + "' y='3' width='10' height='10' fill='#2f54c9'/><text x='" + (L + 164) + "' y='12' font-size='10' fill='#1b2435'>χ² unigram</text>" +
+    "<rect x='" + (L + 260) + "' y='3' width='10' height='10' fill='#1a7a56'/><text x='" + (L + 274) + "' y='12' font-size='10' fill='#1b2435'>2-gram log-L</text>" +
+    "<rect x='" + (L + 375) + "' y='3' width='10' height='10' fill='#9a6a0b'/><text x='" + (L + 389) + "' y='12' font-size='10' fill='#1b2435'>Most-common→E</text>";
+  return "<div class='svgbox'><svg viewBox='0 0 " + W + " " + H + "' role='img' aria-label='Success rate across ciphertext lengths'>" +
+    grid + "<line x1='" + L + "' y1='" + (Tp + ph) + "' x2='" + (W - 16) + "' y2='" + (Tp + ph) + "' stroke='#1b2435'/>" + bars + leg + "</svg></div>";
+}
+
+function renderExp() {
+  const e = state.exp;
+  if (!e) return;
+  const { rows, firstFail } = e;
+  let tbl = "<div class='tableWrap'><table><tr>" +
+    "<th class='n'>Length L</th><th class='n'>Trials</th><th class='n'>Distinct win</th>" +
+    "<th class='n'>χ² Succ</th><th class='n'>χ² Ties</th><th class='n'>χ² Rate</th>" +
+    "<th class='n'>2-gram Succ</th><th class='n'>2-gram Ties</th><th class='n'>2-gram Rate</th>" +
+    "<th class='n'>Max→E Succ</th><th class='n'>Max→E Ties</th><th class='n'>Max→E Rate</th></tr>";
+  for (const r of rows) {
+    tbl += r.skipped
+      ? "<tr><td class='n'>" + r.L + "</td><td class='n'>N/A</td><td class='n'>N/A</td><td class='n'>N/A</td><td class='n'>N/A</td><td class='n'>N/A</td><td class='n'>N/A</td><td class='n'>N/A</td><td class='n'>N/A</td><td class='n'>N/A</td><td class='n'>N/A</td><td class='n'>N/A</td></tr>"
+      : "<tr><td class='n'>" + r.L + "</td><td class='n'>" + r.trials + "</td><td class='n'>" + r.distinct + "</td>" +
+        "<td class='n'>" + r.chiSucc + "/" + r.trials + "</td><td class='n'>" + r.chiTies + "</td><td class='n'><b>" + (r.rate * 100).toFixed(1) + "%</b></td>" +
+        "<td class='n'>" + r.bgSucc + "/" + r.trials + "</td><td class='n'>" + r.bgTies + "</td><td class='n'>" + (r.rateBg * 100).toFixed(1) + "%</td>" +
+        "<td class='n'>" + r.mclSucc + "/" + r.trials + "</td><td class='n'>" + r.mclTies + "</td><td class='n'>" + (r.rateMcl * 100).toFixed(1) + "%</td></tr>";
+  }
+  tbl += "</table></div>";
+
+  // Dynamically computed summary of what was actually observed in this run
+  const measured = rows.filter(r => !r.skipped);
+  let dynSummary = "";
+  if (measured.length > 0) {
+    const first = measured[0], last = measured[measured.length - 1];
+    const totTrials = measured.reduce((a, r) => a + r.trials, 0);
+    const totChi = measured.reduce((a, r) => a + r.chiSucc, 0);
+    const totBg = measured.reduce((a, r) => a + r.bgSucc, 0);
+    const totMcl = measured.reduce((a, r) => a + r.mclSucc, 0);
+    let monoChi = true;
+    for (let i = 1; i < measured.length; i++) if (measured[i].rate + 1e-12 < measured[i - 1].rate) monoChi = false;
+    const perLenStr = measured.map(r => "L=" + r.L + " (χ² " + (r.rate * 100).toFixed(1) + "%, 2-gram " + (r.rateBg * 100).toFixed(1) + "%, Max→E " + (r.rateMcl * 100).toFixed(1) + "%)").join("; ");
+    dynSummary =
+      "<p class='note'><b>Run parameters (snapshotted):</b> seed = <code>" + e.seed + "</code>, trials/length = <code>" + e.trials + "</code>, " +
+      "model #" + e.modelId + " (<code>" + esc(e.corpusFp) + "</code>), evaluation text (<code>" + esc(e.evalFp) + "</code>).</p>" +
+      "<p class='note'><b>Observed empirical results in this run:</b> Across " + totTrials + " total trials (" + measured.length + " active lengths), " +
+      "overall unique top-1 recovery was <b>" + totChi + "/" + totTrials + " (" + (totChi / totTrials * 100).toFixed(1) + "%)</b> for unigram χ², " +
+      "<b>" + totBg + "/" + totTrials + " (" + (totBg / totTrials * 100).toFixed(1) + "%)</b> for 2-gram log-likelihood, and " +
+      "<b>" + totMcl + "/" + totTrials + " (" + (totMcl / totTrials * 100).toFixed(1) + "%)</b> for Most-common→E (with " +
+      measured.reduce((a, r) => a + r.mclTies, 0) + " Max→E ties counted as non-successes). " +
+      "From L=" + first.L + " to L=" + last.L + ", χ² went from " + (first.rate * 100).toFixed(1) + "% to " + (last.rate * 100).toFixed(1) + "% " +
+      "(" + (monoChi ? "non-decreasing across tested lengths in this sample" : "not strictly monotonic across tested lengths in this sample") + "). " +
+      "Per-length breakdown: " + perLenStr + ".</p>" +
+      "<p class='note'><b>Methodological caveats:</b> Windows are drawn with replacement from one fixed synthetic text. Repeated and overlapping passages limit linguistic diversity: these are Monte Carlo results conditional on this text, not evidence from independent real-world documents. The fingerprints are non-cryptographic FNV-1a labels for tracking inputs, not security checksums. Longer ciphertexts generally stabilize empirical letter frequencies when the corpus matches the target language, but neither monotonic improvement nor 100% accuracy is guaranteed (especially if the corpus is unrepresentative, small, or in a different language/domain, or if a method encounters ties).</p>";
+  } else {
+    dynSummary = "<p class='note'>All target lengths exceeded the evaluation text length (" + e.evalLen + " letters).</p>";
+  }
+
+  const failHtml = firstFail
+    ? "<h4>Observed failure example from this run (L = " + firstFail.L + ")</h4><pre>" +
+      "True shift s_true:         " + firstFail.sTrue + "\n" +
+      "χ² estimated shift:        " + (firstFail.tie ? "TIE {" + firstFail.tiedShifts.join(", ") + "} (shown s=" + firstFail.candShift + ")" : firstFail.est) + " (χ² = " + firstFail.chi2.toFixed(2) + ")\n" +
+      "True plaintext window:     " + esc(firstFail.plain) + "\n" +
+      "Ciphertext window:         " + esc(firstFail.cipher) + "\n" +
+      "Candidate decryption:      " + esc(firstFail.candidate) + "</pre>"
+    : "<p class='note'><b>No failures observed in this run</b> for unigram χ² across the measured lengths.</p>";
+
+  $("expOut").innerHTML = "<h4>Unique Top-1 recovery rate vs ciphertext length</h4>" + svgExpChart(rows) + tbl + dynSummary + failHtml;
+}
+
+$("expCsv").onclick = () => {
+  if (!state.exp || activeJob) return;
+  const e = state.exp;
+  let csv = "# seed=" + e.seed + " trials_per_length=" + e.trials + " model_id=" + e.modelId +
+    " corpus_fingerprint=\"" + e.corpusFp + "\" eval_fingerprint=\"" + e.evalFp + "\" policy=unique_top1_only\n" +
+    "length,trials,distinct_windows,chi2_succ,chi2_ties,chi2_insuff,chi2_rate,bigram_succ,bigram_ties,bigram_insuff,bigram_rate,mcl_succ,mcl_ties,mcl_insuff,mcl_rate\n";
+  for (const r of e.rows) {
+    csv += r.skipped
+      ? r.L + ",N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A\n"
+      : [
+          r.L, r.trials, r.distinct,
+          r.chiSucc, r.chiTies, r.chiInsuff, r.rate.toFixed(4),
+          r.bgSucc, r.bgTies, r.bgInsuff, r.rateBg.toFixed(4),
+          r.mclSucc, r.mclTies, r.mclInsuff, r.rateMcl.toFixed(4)
+        ].join(",") + "\n";
+  }
+  const blob = new Blob([csv], { type: "text/csv" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = "caesar_length_experiments.csv"; a.click(); URL.revokeObjectURL(a.href);
+};
+
+/* ========================= 6. ECC key-space attack ========================= */
+async function runEccAttackJob(Qsnap, ctSnap, Bs) {
+  $("eccAttackOut").textContent = "Searching the public key interval…";
+  const job = startExclusiveJob("eccAttack");
+  const rec = makeKeyRecovery(Qsnap, Bs); // receives ONLY snapshotted public Q and B_search
+  const t0 = performance.now();
+  let out = { found: -1, attempts: 0, done: false };
+  try {
+    while (!out.done) {
+      if (job.isCancelled()) break;
+      out = rec.step(300);
+      $("attProg").style.width = (out.attempts / Bs * 100) + "%";
+      await new Promise(r => setTimeout(r, 0));
+    }
+    const t1 = performance.now();
+    if (job.isCancelled()) {
+      if (job.isCurrent()) $("eccAttackOut").textContent = "Cancelled after " + out.attempts + " attempts.";
+      return null;
+    }
+    if (out.found < 0) {
+      $("eccAttackOut").innerHTML = "<span class='tag no'>not found</span> in 1…" + Bs + " after " + out.attempts +
+        " curve additions (" + (t1 - t0).toFixed(1) + " ms) for Q = <span class='mono'>" + ptShort(Qsnap) + "</span>. The private key k exceeds B_search.";
+      return { found: -1, attempts: out.attempts };
+    }
+    const kRec = BigInt(out.found), verified = eqPt(mulPt(kRec, G), Qsnap);
+    const t2 = performance.now();
+    let msg = "", decOk = true, decErr = "";
+    try {
+      for (const pair of ctSnap) msg += String.fromCharCode(eccDecryptByte(pair, kRec));
+    } catch (e) { decOk = false; decErr = e.message; }
+    const t3 = performance.now();
+    $("eccAttackOut").innerHTML =
+      "<span class='tag ok'>private key recovered</span> k_rec = <span class='key'>" + out.found + "</span> · attempts: <b>" +
+      out.attempts + "</b> / " + Bs + " · algebraic check k_rec·G == Q: " + (verified ? "<span class='tag ok'>verified</span>" : "<span class='tag no'>failed</span>") +
+      "<br><span class='note'>Target Q = <code>" + ptShort(Qsnap) + "</code> · Search time: " + (t1 - t0).toFixed(2) +
+      " ms · Decryption time (" + ctSnap.length + " snapshotted pairs): " + (t3 - t2).toFixed(2) + " ms</span>" +
+      (decOk ? "<h4>Candidate decryption using recovered key k_rec</h4><pre>" + esc(msg) + "</pre>" : "<p class='tag no'>decryption failed: " + esc(decErr) + "</p>");
+    return { found: out.found, attempts: out.attempts, verified, decOk, msg };
+  } catch (err) {
+    if (job.isCurrent()) $("eccAttackOut").textContent = "Key-recovery error: " + err.message;
+    return null;
+  } finally {
+    if (job.isCurrent()) $("attProg").style.width = "0";
+    finishExclusiveJob(job.token);
+  }
+}
+
+$("eccAttack").onclick = () => {
+  if (activeJob) return;
+  if (!state.ecc) { $("eccAttackOut").textContent = "Encrypt or import a ciphertext first."; return; }
+  const Bs = readInt("Bsearch", 1, 50000); if (Bs === null) return;
+  // Snapshot both Q and the ciphertext pairs so mid-flight changes cannot mismatch them
+  const Qsnap = { x: state.ecc.Q.x, y: state.ecc.Q.y };
+  const ctSnap = state.ecc.ct.map(pair => ({
+    R: { x: pair.R.x, y: pair.R.y },
+    C: pair.C === O ? O : { x: pair.C.x, y: pair.C.y }
+  }));
+  runEccAttackJob(Qsnap, ctSnap, Bs);
+};
+$("eccAttackCancel").onclick = () => { if (activeJob && activeJob.kind === "eccAttack") activeJob.cancel(); };
+
+/* ========================= 7. Comparison + Histograms ========================= */
+(function () {
+  const rows = [
+    ["Cryptographic family", "Symmetric monoalphabetic substitution", "Asymmetric public-key encryption (didactic per-byte EC ElGamal)"],
+    ["Encryption key", "Shared secret shift s ∈ {0…25}", "Recipient public point Q = kG on secp256k1"],
+    ["Decryption key", "Same shift s (invert mod 26)", "Recipient private scalar k"],
+    ["Key space size", "26 shifts (~4.70 bits)", "Lab restriction: k ∈ {1…B}; full secp256k1: k ∈ {1…n−1} (n ≈ 2²⁵⁶)"],
+    ["Determinism / Randomness", "Deterministic (same plaintext + key → same ciphertext)", "Probabilistic (fresh uniform r ∈ {1…n−1} per byte)"],
+    ["Ciphertext size / expansion", "1 char per char (1×)", "2 curve points per byte: 128 B raw coordinates (130 B uncompressed SEC1, 66 B compressed SEC1; JSON size measured live in Section 2)"],
+    ["Attacker's inputs", "Ciphertext + language model from corpus", "Public parameters (G, Q), ciphertext pairs (R_i, C_i), search bound B_search"],
+    ["Attack complexity & check", "O(26·N) statistical ranking (χ² / bigrams / mode)", "O(B) incremental point additions checking jG == Q (or O(√B) BSGS / Kangaroo)"],
+    ["Language & length dependence", "Requires known language and sufficient letter count N", "Independent of language and message length (recovers k from Q alone)"],
+    ["Design & parameter limits", "Tiny key space; preserves unigram/bigram frequency shape", "Small B enables key recovery; per-byte toy design is unauthenticated (malleable), leaks length, and has high bandwidth overhead"]
+  ];
+  let t = "<table><tr><th>Dimension</th><th>Caesar Cipher</th><th>Toy secp256k1 Scheme (EC ElGamal)</th></tr>";
+  for (const r of rows) t += "<tr><th>" + r[0] + "</th><td>" + r[1] + "</td><td>" + r[2] + "</td></tr>";
+  $("cmpTable").innerHTML = t + "</table>";
+})();
+
+$("statBtn").onclick = () => {
+  if (activeJob) return;
+  if (!state.norm) { $("statOut").textContent = "Normalize a message first."; return; }
+  const s = readInt("caesarS", 0, 25); if (s === null) return;
+  const plain = letterCounts(state.norm), ciph = letterCounts(caesar(state.norm, s, false));
+  const fp = plain.c.map(c => plain.total ? c / plain.total : 0), fc = ciph.c.map(c => ciph.total ? c / ciph.total : 0);
+  let letterRows = "";
+  for (let i = 0; i < 26; i++) {
+    letterRows += "<tr><td>" + String.fromCharCode(65 + i) + "</td><td class='n'>" + plain.c[i] + "</td><td class='n'>" + (fp[i] * 100).toFixed(2) + "%</td><td class='n'>" + ciph.c[i] + "</td><td class='n'>" + (fc[i] * 100).toFixed(2) + "%</td></tr>";
+  }
+  let html = "<h4>Caesar: A–Z letter distribution (Plaintext vs Ciphertext, shift s = " + s + ")</h4>" +
+    svgLetters([{ name: "Plaintext A–Z", color: "#2f54c9", values: fp }, { name: "Ciphertext A–Z", color: "#1a7a56", values: fc }],
+      "Plaintext and ciphertext letter frequencies") +
+    "<p class='note'>Empirical Shannon entropy over 26 letters: Plaintext <b>" + shannon(plain.c, plain.total).toFixed(3) +
+    "</b> bits/letter, Ciphertext <b>" + shannon(ciph.c, ciph.total).toFixed(3) +
+    "</b> bits/letter (uniform max = log₂26 ≈ 4.700 bits/letter). The histogram is cyclically shifted by " + s + " positions.</p>" +
+    "<details class='print-hide'><summary>Numeric table: Plaintext vs Ciphertext letter counts &amp; frequencies</summary>" +
+    "<div class='tableWrap'><table><tr><th>Letter</th><th class='n'>Plain count</th><th class='n'>Plain %</th><th class='n'>Cipher count</th><th class='n'>Cipher %</th></tr>" + letterRows + "</table></div></details>";
+
+  if (state.ecc) {
+    const bc = new Array(256).fill(0); let tot = 0, skippedO = 0;
+    for (const ct of state.ecc.ct) for (const p of [ct.R, ct.C]) {
+      if (p === O) { skippedO++; continue; }
+      const h = p.x.toString(16).padStart(64, "0");
+      for (let i = 0; i < 64; i += 2) { bc[parseInt(h.slice(i, i + 2), 16)]++; tot++; }
+    }
+    const maxCnt = Math.max(1, ...bc);
+    const W = 700, H = 190, L = 48, Bm = 28, Tp = 26, pw = W - L - 12, ph = H - Tp - Bm;
+    let grid = "", bars = "", ticks = "";
+    for (let k = 0; k <= 4; k++) {
+      const val = (maxCnt * k) / 4;
+      const y = Tp + ph * (1 - k / 4);
+      grid += "<line x1='" + L + "' y1='" + y.toFixed(1) + "' x2='" + (W - 12) + "' y2='" + y.toFixed(1) + "' stroke='#e4eaf4'/>" +
+        "<text x='" + (L - 6) + "' y='" + (y + 3).toFixed(1) + "' font-size='9' text-anchor='end' fill='#5a667c'>" + val.toFixed(1) + "</text>";
+    }
+    grid += "<text x='" + L + "' y='12' font-size='9' fill='#5a667c'>Byte count (count / 256 bins)</text>" +
+            "<rect x='" + (L + 185) + "' y='3' width='10' height='10' fill='#9a6a0b'/><text x='" + (L + 199) + "' y='12' font-size='10' fill='#1b2435'>Serialized X-coordinate byte count</text>";
+    for (let i = 0; i < 256; i++) {
+      const h = bc[i] > 0 ? (bc[i] / maxCnt) * ph : 0;
+      bars += "<rect x='" + (L + i * (pw / 256)).toFixed(2) + "' y='" + (Tp + ph - h).toFixed(1) +
+        "' width='" + (pw / 256 * 0.9).toFixed(2) + "' height='" + Math.max(0, h).toFixed(1) + "' fill='#9a6a0b'/>";
+    }
+    [0, 32, 64, 96, 128, 160, 192, 224, 255].forEach(v => {
+      ticks += "<text x='" + (L + (v + 0.5) * (pw / 256)).toFixed(1) + "' y='" + (H - 8) + "' font-size='9' text-anchor='middle' fill='#1b2435'>" + v + "</text>";
+    });
+    let byteRows = "";
+    for (let i = 0; i < 256; i++) {
+      byteRows += "<tr><td class='n'>" + i + " (0x" + i.toString(16).padStart(2, "0").toUpperCase() + ")</td><td class='n'>" + bc[i] + "</td><td class='n'>" + (tot ? (bc[i] / tot * 100).toFixed(2) : "0.00") + "%</td></tr>";
+    }
+    html += "<p class='note'>ECC sample source: " + state.ecc.source + (state.ecc.msgBytes ? " (same normalized message)." : " (imported; its plaintext is not assumed to equal the current message).") + "</p><h4>ECC: Byte distribution of serialized 32-byte big-endian X-coordinates (R_i, C_i)</h4>" +
+      "<div class='svgbox'><svg viewBox='0 0 " + W + " " + H + "' role='img' aria-label='Byte frequency histogram of ECC ciphertext X coordinates'>" +
+      grid + "<line x1='" + L + "' y1='" + (Tp + ph) + "' x2='" + (W - 12) + "' y2='" + (Tp + ph) + "' stroke='#1b2435'/>" + bars + ticks + "</svg></div>" +
+      "<p class='note'>Counted <b>" + tot + "</b> X-coordinate bytes across " + state.ecc.ct.length + " point pairs (64 X-coordinate bytes per finite pair; full uncompressed coordinates occupy 128 B/pair)" +
+      (skippedO ? " (" + skippedO + " infinity points skipped)" : "") +
+      ". Empirical byte entropy = <b>" + shannon(bc, tot).toFixed(3) + "</b> bits/byte (uniform max = log₂256 = 8.000 bits/byte). " +
+      "Note: bits/byte over 256 byte values and bits/letter over 26 letters use different alphabets and are not directly comparable. An apparently flat byte histogram does not protect against algebraic key recovery when k is restricted.</p>" +
+      "<details class='print-hide'><summary>Numeric table: all 256 byte counts &amp; relative frequencies</summary>" +
+      "<div class='tableWrap'><table><tr><th class='n'>Byte value</th><th class='n'>Count</th><th class='n'>Relative %</th></tr>" + byteRows + "</table></div></details>";
+  } else {
+    html += "<p class='note'>Encrypt (or import) an ECC ciphertext in Section 2 to also compute the 256-byte coordinate histogram.</p>";
+  }
+  $("statOut").innerHTML = html;
+};
+
+/* ========================= 9. Live Code Dump + Self-Tests ========================= */
+$("codeDump").textContent = [lettersOnly, mod, modInv, addPts, mulPt, eccEncryptByte, eccDecryptByte, makeKeyRecovery, buildModel, attackCaesar]
+  .map(f => f.toString()).join("\n\n");
+
+$("testBtn").onclick = async () => {
+  if (activeJob) return;
+  const job = startExclusiveJob("tests"), savedSeq = modelSeq;
+  const lines = []; let pass = 0, fail = 0;
+  const test = (name, fn) => {
+    try { if (!fn()) throw new Error("condition failed"); lines.push("PASS — " + name); pass++; }
+    catch (e) { lines.push("FAIL — " + name + ": " + e.message); fail++; }
+  };
+  const rejects = fn => { try { fn(); return false; } catch { return true; } };
+  $("testOut").textContent = "Running isolated mathematical and serialization tests…";
+  await new Promise(r => setTimeout(r, 0));
+  try {
+    test("G is on secp256k1", () => onCurve(G));
+    test("2G matches independently cross-checked OpenSSL reference", () => {
+      const q = mulPt(2n,G);
+      return q.x === 0xC6047F9441ED7D6D3045406E95C07CD85C778E4B8CEF3CA7ABAC09B95C709EE5n &&
+             q.y === 0x1AE168FEA63DC339A3C58419466CEAEEF7F632653266D0E1236431A950CFE52An;
+    });
+    test("nG = O and (n−1)G = −G", () => mulPt(N,G) === O && eqPt(mulPt(N-1n,G),neg(G)));
+    test("Point identity, inverse and negative scalar", () => eqPt(addPts(O,G),G) && addPts(G,neg(G)) === O && eqPt(mulPt(-3n,G),neg(mulPt(3n,G))));
+    test("All 256 byte encodings are distinct and reversible", () => decTable.size === 256 && encTable.every((p,b) => onCurve(p) && decTable.get(ptKey(p)) === b));
+    const k=37n, Q=mulPt(k,G);
+    test("Randomized EC ElGamal round trips: bytes 0,1,65,127,255", () => [0,1,65,127,255].every(b => eccDecryptByte(eccEncryptByte(b,Q),k) === b));
+    test("Constructed C=O ciphertext decrypts and serializes correctly", () => {
+      const byte=65, r=mod(-BigInt(byte+1)*modInv(k,N),N), R=mulPt(r,G);
+      const C=addPts(encTable[byte],mulPt(r,Q));
+      const data=parsePublicBundleObject(buildPublicBundleObject({Q,ct:[{R,C}]}));
+      return C===O && data.ct[0].C===O && eccDecryptByte(data.ct[0],k)===byte;
+    });
+    test("Public export excludes private k, ephemeral r, shared S and plaintext", () => {
+      const ct=eccEncryptByte(65,Q), b=buildPublicBundleObject({Q,ct:[ct],msgBytes:[65]});
+      return Object.keys(b).sort().join(',')==='Q,ciphertext,curve,encoding,scheme' && Object.keys(b.ciphertext[0]).sort().join(',')==='C,R';
+    });
+    test("JSON rejects noncanonical/off-curve/malformed coordinates and Q=O", () =>
+      rejects(()=>ptFromJSON({x:'0x'+P.toString(16),y:'0x1'},false)) &&
+      rejects(()=>ptFromJSON({x:'0x1',y:'0x1'},false)) && rejects(()=>ptFromJSON({x:' ',y:'0'},false)) && rejects(()=>ptFromJSON('O',false)));
+    test("Public bundle rejects R=O, empty ciphertext and >128 pairs", () =>
+      rejects(()=>parsePublicBundleObject({Q:ptJSON(Q),ciphertext:[{R:'O',C:ptJSON(G)}]})) &&
+      rejects(()=>parsePublicBundleObject({Q:ptJSON(Q),ciphertext:[]})) &&
+      rejects(()=>parsePublicBundleObject({Q:ptJSON(Q),ciphertext:Array(129).fill({R:ptJSON(G),C:ptJSON(G)})})));
+    test("Restricted search: k=1, interior k=37, boundary k=50, and not found", () =>
+      [[1,1],[37,37],[50,50],[80,-1]].every(([k,want])=>makeKeyRecovery(mulPt(BigInt(k),G),50).step(50).found===want));
+    test("Completed search remains stable if stepped again", () => { const r=makeKeyRecovery(Q,50);return r.step(50).found===37 && r.step(50).attempts===37; });
+    test("Recovered key decrypts using only public ciphertext", () => {
+      const d=parsePublicBundleObject(buildPublicBundleObject({Q,ct:[eccEncryptByte(72,Q),eccEncryptByte(73,Q)]}));
+      const rec=makeKeyRecovery(d.Q,50).step(50);
+      return d.ct.map(c=>String.fromCharCode(eccDecryptByte(c,BigInt(rec.found)))).join('')==='HI';
+    });
+    test("Known Caesar example HELLO → KHOOR at s=3",()=>caesar('HELLO',3,false)==='KHOOR');
+    test("All 26 Caesar shifts round-trip and preserve punctuation/digits",()=>Array.from({length:26},(_,s)=>s).every(s=>caesar(caesar('HELLO, WORLD! 123',s,false),s,true)==='HELLO, WORLD! 123'));
+    test("Caesar preserves letter entropy",()=>{const a=letterCounts('THE QUICK BROWN FOX');const b=letterCounts(caesar(a.letters,9,false));return Math.abs(shannon(a.c,a.total)-shannon(b.c,b.total))<1e-12;});
+    const spaced=buildModel('AB CD EF'), joined=buildModel('ABCDEF');
+    test("Corpus/candidate bigrams use the same lettersOnly convention",()=>JSON.stringify(spaced.logBg)===JSON.stringify(joined.logBg));
+    test("Smoothed frequencies sum to 1 and contain no zero probabilities",()=>Math.abs(spaced.f.reduce((a,b)=>a+b,0)-1)<1e-12 && spaced.f.every(p=>p>0));
+    test("No letters → insufficient data; one letter → no bigram estimate",()=>attackCaesar('123!?',spaced).status==='insufficient data' && attackCaesar('A',spaced).bestBg===null);
+    test("Ties return no unique estimate for all three methods",()=>{
+      const a=attackCaesar('AB',buildModel('ABCDEFGHIJKLMNOPQRSTUVWXYZ'));
+      return a.tie && a.best===null && a.bgTie && a.bestBg===null && a.mclTie && a.mclShift===null;
+    });
+    test("Seeded experimental PRNG is reproducible",()=>{const a=mulberry32(12345),b=mulberry32(12345);return Array.from({length:100},()=>a()===b()).every(Boolean);});
+    test("Statistical recovery of an English held-out passage",()=>{
+      const m=buildModel(CORPUS), a=attackCaesar(caesar(lettersOnly(EVAL).slice(0,500),17,false),m);
+      return a.best===17 && a.bestBg===17;
+    });
+  } finally {
+    modelSeq=savedSeq;
+    $("testOut").innerHTML="<pre>"+esc(lines.join('\n'))+"\n\nSummary: "+pass+" passed, "+fail+" failed.</pre><p class='note'>These tests use separate temporary values; your message, keys, corpus, ciphertext and experiment results are unchanged. They verify the listed properties, not production security.</p>";
+    finishExclusiveJob(job.token);
+  }
+};
+
+
+/* ========================= Default Corpus & Evaluation Text (100% English ASCII) ========================= */
+const CORPUS = `The morning market opened slowly, and the vendors arranged their baskets of ripe fruit along the narrow street while the early light spread across the rooftops. A baker carried warm bread to the corner shop, and the smell drifted through the open windows of the houses nearby. Children ran between the stalls, laughing at a small dog that chased after a rolling apple. An old woman counted her coins with careful fingers and chose a bunch of yellow flowers for her kitchen table.
+Far beyond the town, the river moved quietly between green banks, carrying leaves and twigs toward the distant sea. A fisherman waited on the stone bridge, watching the surface for any sign of movement. When the clouds gathered in the afternoon, the water turned a darker shade and the wind pushed small waves against the shore. Travelers crossed the bridge in both directions, some heading home and others setting out on journeys that would last for many days.
+In the old library the shelves rose toward the ceiling, filled with books about history, science, music, and the lives of people from every age. A young student read about the stars and the great distances between them, and about the slow turning of the planets around a common center. She wrote notes in a small book, drawing diagrams of orbits and marking the names of constellations she hoped to find in the night sky. The quiet room held only the sound of turning pages and the faint ticking of a clock.
+The kitchen filled with steam as the soup simmered on the stove, and the cook added salt, pepper, and a handful of fresh herbs from the garden. On the table sat a bowl of eggs, a block of cheese, and a loaf of dark bread ready to be sliced. Dinner would be simple but warm, the kind of meal that brings a family together after a long and busy day. Outside the window the garden rested under a gentle rain that would feed the roots of the vegetables and the roses alike.
+Music played softly from a radio in the next room, a slow melody of strings and a single piano. The notes rose and fell like the breathing of a sleeping child, and for a moment the whole house seemed to listen. A cat stretched on the warm floor near the fire, opening one eye before settling back into sleep. The day had been full of small tasks and small pleasures, and now the evening promised rest.
+Science teaches us to question what we observe and to test our ideas against careful measurement. A theory that cannot be checked against the world has little value, however beautiful it may seem. When an experiment fails to match a prediction, the honest response is not to hide the result but to study it, for such moments often reveal something new. Progress comes from doubt as much as from belief, and from the patient work of many hands across many years.
+History reminds us that great cities once stood where only fields remain, and that languages now forgotten were spoken by millions. Each generation builds upon the work of those before it, adding new discoveries while losing some of the old wisdom. The ruins of ancient walls still mark the hills above the valley, and children climb among the fallen stones without knowing the names of the people who placed them there so long ago.
+Travel opens the mind to customs and flavors unlike those of home. In one country the bread is thin and crisp, in another soft and sweet, and in a third it is baked in deep ovens dug into the ground. The traveler learns to greet strangers in their own tongue, to share a meal without a common language, and to find beauty in a landscape that at first seemed strange. Every road leads somewhere, and every place has a story worth hearing.
+The workshop smelled of wood and oil, and tools hung in neat rows along the wall. A carpenter measured a plank twice before cutting it once, following the old advice of his teacher. Sawdust gathered on the floor in soft piles, and the half-finished chair waited patiently for its final coat of varnish. Good work takes time, he often said, and a thing made with care will outlast a thing made in haste.
+When winter came the mountains wore a heavy coat of snow, and the paths that led between the villages grew quiet and white. Smoke rose from the chimneys in thin straight lines, and the cold air carried the sound of distant bells. Inside, families gathered around the fire to tell stories of summers past and to plan for the spring that would surely return. The season of rest was also a season of hope.
+The ocean changes its mood with the hours, calm and silver at dawn, restless and dark before a storm. Sailors read the sky for warning, noting the shape of the clouds and the color of the light at the edge of the world. A good crew trusts one another without many words, each knowing the task that must be done when the wind rises and the deck tilts beneath their feet. When the harbor finally appears, tired hands grow steady again, and the long voyage becomes a story to be told.
+On the playing field the two teams met under a bright sky, and the crowd filled the wooden stands with noise and color. The ball moved quickly from one side to the other, chased by players whose breath came hard in the cool air. A single clever pass opened a path to the goal, and for a moment the whole stadium held its breath before the roar broke loose. Win or lose, the game taught patience, courage, and the value of practice repeated day after day.
+The farmer rose before the sun to feed the animals and check the fences along the far edge of the land. Dew lay heavy on the grass, and the cows gathered near the gate, waiting with quiet patience. Through the long summer the wheat ripened from green to gold, bending in the wind like a slow and endless wave. Harvest was hard work, but the sight of the full barn brought a deep and simple satisfaction that no city pleasure could match.
+At night the sky above the desert burned with countless stars, more than any person could ever count or name. The ancient watchers had traced pictures among them, heroes and animals and distant gods, and had used their steady motion to measure the passing of the year. A falling star cut a brief bright line across the dark, gone before the eye could follow, a reminder of how vast and old the universe truly is.
+The teacher stood before the class and asked a simple question, then waited while the students thought. Learning, she believed, began not with the answer but with the honest wish to understand. Some pupils raised their hands at once, eager and sure, while others frowned at their desks, turning the problem over slowly. By the end of the lesson even the quiet ones had found a thread to follow, and the room felt warmer for the shared effort of the hour.
+A letter arrived in the evening post, the handwriting familiar and dear, the paper slightly worn from its long journey. Inside were ordinary words about weather and work and small family news, yet reading them felt like hearing a loved voice across a great distance. The reader set the letter beside the lamp and began at once to write a reply, for some bonds are kept alive only by the patient habit of answering.
+Deep in the forest the trees grew close and tall, their branches weaving a green roof that filtered the sunlight into soft and shifting patterns. Birds called from the high leaves, and somewhere a stream ran over smooth stones with a sound like quiet laughter. A narrow path wound between the trunks, worn by the feet of those who came to gather mushrooms or simply to walk in the cool and living shade. The forest asked for silence, and gave peace in return.
+The painter worked in the long light of late afternoon, mixing colors on a wooden board stained by years of use. She studied the hills beyond the window, the way the shadows gathered in the folds of the land and the warm glow that touched the highest ridge. Each stroke of the brush was a small decision, a choice between what the eye saw and what the heart wished to say. A painting, she knew, was never truly finished, only abandoned at the right moment.
+Rain began as a few scattered drops and grew into a steady drumming on the roof and windows. The streets emptied as people hurried for shelter, folding newspapers over their heads or crowding under the awnings of the shops. Water ran in bright streams along the gutters, carrying leaves and petals toward the drains. Inside a warm cafe, strangers shared a table and watched the storm, and for a little while the ordinary rush of the day gave way to quiet and welcome rest.
+The village held its yearly festival at the end of the harvest, when the barns were full and the work was done. Long tables stretched across the square, laden with roasted meat, fresh bread, and bowls of fruit from the orchards. Musicians played late into the night, and the young people danced in wide circles while the old ones watched and remembered their own youth. Lanterns swung from the trees, and laughter carried far across the quiet fields beyond the houses.
+A doctor walked the long ward at dawn, pausing at each bed to listen and to reassure. Healing, she had learned, was as much a matter of patience and kindness as of medicine. Some patients mended quickly and left with grateful words, while others lingered, their recovery slow and uncertain. She kept careful notes of every change, trusting that steady attention would reveal in time what a single hurried glance could never see.
+Trade had built the city, and its markets drew merchants from across the sea. In the crowded lanes one could find spices from distant islands, cloth woven in far mountain villages, and strange fruits whose names few could pronounce. Coins of a dozen lands changed hands beneath the striped awnings, and bargains were struck in a mixture of tongues and gestures. Wealth flowed through the harbor like the tide, lifting some and leaving others behind.
+When autumn came the leaves turned slowly from green to gold and deep red, and the cool mornings carried the smell of woodsmoke and ripe apples. Flocks of birds gathered on the wires, restless and loud, preparing for their long flight to warmer lands. Children kicked through the fallen leaves on their way to school, and the gardens were put to rest for the coming cold. It was a season of endings, but also of quiet beauty and gentle preparation.
+A climber set out before dawn to reach the summit while the air was still and cold. The path rose steeply through loose stone and patches of stubborn snow, and each step demanded care and a steady breath. Far below, the valley slept beneath a blanket of morning mist, and the first sun touched the peaks with pale fire. Reaching the top brought no shouting, only a deep and silent wonder at the wide and shining world spread out on every side.
+The old bookshop smelled of paper and dust and the faint sweetness of leather bindings. Narrow aisles ran between shelves that leaned together like tired friends, crammed with volumes on every subject under the sun. The owner knew his stock by heart and could find a forgotten title in the time it took to ask. Readers lingered for hours, pulling books at random, and left with treasures they had not known they were seeking.
+In the quiet hour before sleep, a mother told her children a story of brave travelers and distant kingdoms, of rivers that sang and mountains that spoke. The words carried the small listeners far beyond their warm beds, into a world shaped only by imagination and love. When the tale was done and the lamp turned low, the house settled into stillness, and the long day closed as gently as a book.
+The river wound slowly through the broad valley, reflecting the pale blue of the sky and the dark green of the willows along its banks. A flat boat drifted with the current, its single passenger trailing a hand in the cool water and watching the dragonflies skim the surface. The journey had no hurry and no clear end, only the gentle pull of the stream and the slow unfolding of the quiet countryside on either side.
+Snow fell all through the long winter night, covering the roofs and the roads in a soft and silent white. By morning the world looked new and strange, every sharp edge softened, every sound muffled and far away. Children burst from the houses with bright scarves and red cheeks, building figures of snow and carving paths across the untouched fields, while the pale sun climbed slowly through a sky washed clean and clear.
+Spring returned at last to the waking valley, and the bare branches softened with the first green buds of the year. Streams ran full and quick with melting snow, and the fields filled slowly with small bright flowers. Birds came back from the warm southern lands to build their nests in the old familiar trees, and the whole countryside seemed to breathe again after the long sleep of winter.
+An astronomer adjusted the brass telescope on the observatory roof, waiting for the upper atmosphere to grow steady after midnight. Through the eyepiece, Jupiter appeared as a banded disk accompanied by four bright moons arranged in a nearly straight line. Over several hours, the innermost moon shifted noticeably against the background of fainter stars, confirming the laws of orbital motion derived centuries earlier. Careful measurement, recorded night after night in ruled ledgers, turned wandering lights into predictable worlds.
+In the printing house, typesetters stood before wooden cases divided into dozens of compartments of unequal size. Because the letter E occurs more frequently in English prose than any other character, its compartment was the largest and closest to the compositor's right hand, while rare letters like Q, X, and Z occupied small boxes near the top corners. Even before formal information theory existed, practical craftsmen had discovered the empirical frequency distribution of their language through the physical wear of lead type.
+Cryptography evolved alongside telegraphy and radio communication, where messages traveled through open channels accessible to anyone with an antenna. Early substitution ciphers attempted to disguise text by permuting the alphabet, yet they left the underlying statistical rhythm of the language untouched. Modern public-key systems replaced linguistic obscurity with algebraic problems over large finite groups, ensuring that even when an adversary knows the exact algorithm and observes thousands of ciphertexts, recovering the private key remains computationally intractable when parameters are chosen properly.
+Inside the botanical conservatory, glass arches trapped the warmth of the afternoon sun, sustaining ferns and orchids collected from equatorial forests. Labels written in neat Latin script identified each specimen by family, genus, and place of origin. Mist rose from damp gravel paths as the automated sprayers hissed softly, keeping the air heavy with the scent of wet earth and crushed foliage. Students sketched the venation of leaves in their field notebooks, comparing adaptations to shade and drought.
+Along the northern coast, granite cliffs met the Atlantic swell in a continuous line of white foam. Seabirds nested on narrow ledges high above the reach of the tide, raising their young amidst the constant roar of wind and water. Lighthouses stood on the most exposed headlands, their lenses rotating smoothly on baths of mercury to cast coded flashes across twenty miles of dark water. Navigators timed the intervals between flashes with pocket chronometers to fix their position on Admiralty charts.`;
+
+const EVAL = `The lighthouse stood alone on the rocky point, its white tower bright against the grey morning sea. For many years the keeper had climbed the winding stairs at dusk to light the great lamp, and ships far out in the channel had trusted that steady beam to guide them safely past the hidden reef. Now a machine turned the light, yet the old man still walked the cliff each evening, watching the horizon out of habit and love.
+A scientist in a small laboratory measured the growth of tiny crystals under a careful lens, recording each change in a worn notebook. The patterns that formed were delicate and exact, repeating in ways that hinted at deeper rules of nature. She knew that a single clear result could take months of quiet effort, and that most of her days would end without any obvious reward, but the slow progress gave her a steady joy.
+The orchard spread across the gentle slope, rows of apple and pear trees heavy with fruit in the late summer heat. Workers moved among the branches with woven baskets, picking only the ripest pieces and leaving the rest to gather a few more days of sun. At the edge of the field a wooden cart waited to carry the harvest to the village, where the fruit would be sold, pressed into juice, or stored in cool cellars for the colder months ahead.
+In the great hall of the museum, visitors walked quietly past paintings that had survived for centuries, past carved figures of stone and cases of ancient coins. A guide spoke softly about the artists and the kings they served, about wars that reshaped borders and trade that carried ideas across oceans. Children pressed their faces close to the glass, trying to imagine the distant lives behind each fragile object, while their parents read the small printed cards.
+The train crossed the wide plain under a sky streaked with the first colors of dawn, its windows glowing with the pale orange light. Inside, a few early travelers dozed in their seats or watched the fields slide past, green and gold and silver with dew. At each small station the train slowed, took on a handful of passengers, and moved on again, stitching together the scattered towns along its quiet and familiar route toward the sea.
+The clockmaker bent over his bench beneath a bright lamp, holding a tiny gear with a pair of fine tweezers. Around him a hundred clocks ticked in gentle disagreement, each marking its own slightly different second. He had learned the craft from his father, who had learned it from his own, and the small shop had kept the same careful silence for generations. A watch, he liked to say, is a promise to the future that the present will be measured honestly.
+In the walled garden the roses climbed the old brick in tangled abundance, red and white and a soft shade between. A gardener moved along the beds with a basket and shears, trimming the spent blooms and tying the long canes to their supports. Bees worked the open flowers in the warm still air, and a blackbird sang from the top of the pear tree. The garden rewarded patience above all, giving its fullest beauty only to those willing to wait through many seasons.
+The harbor woke before the town, its boats rocking gently as fishermen loaded nets and baskets by the grey light. Gulls wheeled above the water, crying for scraps, and the cold salt wind carried the smell of tar and fish and rope. By midmorning the catch was spread on the stone quay, silver and glistening, and buyers called out their offers above the general noise. The sea gave generously, but it asked respect, and every family on the shore knew its dangers well.
+Across the high plateau, surveyors set up their theodolites on wooden tripods, sighting distant cairns through the clear mountain air. By measuring angles from the ends of a carefully chained baseline, they calculated the positions of peaks and river valleys without ever walking every mile between them. Maps drawn from these triangles guided engineers who laid railway tracks through narrow passes and bridged deep gorges with arches of dressed stone.
+In the university archive, scholars examined parchment manuscripts under ultraviolet lamps that revealed faded ink beneath later writing. Centuries ago, when vellum was scarce, scribes had scraped clean older treatises on geometry and astronomy to copy new texts over the same sheets. Modern imaging restored the erased lines without harming the surface, recovering mathematical arguments that had been thought lost since antiquity.
+The pottery kiln burned steadily for thirty hours, its brick dome glowing dull cherry red in the dusk. Inside, stacked bowls and pitchers underwent a chemical transformation as clay particles fused into stoneware and mineral glazes melted into smooth glass. The potter watched the colour of the flame through a narrow spyhole, knowing that cooling too quickly would crack the pieces, while patient tending would yield vessels strong enough to hold water for a lifetime.`;
+
+$("corpusIn").value = CORPUS; $("evalIn").value = EVAL;
+doNormalize(); showModel(); syncUIControls();
+</script>
+</body>
+</html>
