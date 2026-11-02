@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HMWK 4 · Ex. 1 — Welford's Recurrence Formulas</title>
+<style>:root{--ink:#1b3041;--muted:#526575;--bg:#f5f7f6;--paper:#fff;--line:#d8e2e3;--teal:#147d71;--purple:#7353a8;--amber:#ae7016;--red:#b13d4a;--soft:#eaf5ef;--mono:ui-monospace,SFMono-Regular,Consolas,monospace;--sans:system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
+*{box-sizing:border-box}html{scroll-behavior:smooth;overflow-x:clip}
+body{margin:0;font:16px/1.65 var(--sans);color:var(--ink);background:var(--bg);overflow-x:clip}
+a{color:var(--teal)}
+.wrap{max-width:1100px;margin:auto;padding:0 20px}
+header{background:linear-gradient(120deg,#e6f4ef,#f3f6ff);border-bottom:1px solid var(--line)}
+header .wrap{padding-top:34px;padding-bottom:28px}
+.eyebrow{font:600 .8rem/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--teal);margin:0 0 8px}
+h1{font-size:clamp(1.7rem,4vw,2.5rem);line-height:1.15;margin:0 0 12px;letter-spacing:-.02em}
+h2{font-size:1.45rem;margin:42px 0 12px;letter-spacing:-.01em}
+h2 small{font:600 .8rem var(--mono);color:var(--teal);margin-right:8px}
+h3{font-size:1.08rem;margin:0 0 10px}
+.lead{font-size:1.08rem;color:var(--muted);max-width:820px;margin:0}
+nav.toc{position:sticky;top:0;z-index:5;background:rgba(245,247,246,.94);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+nav.toc .wrap{display:flex;gap:4px;overflow-x:auto;padding-top:6px;padding-bottom:6px;scrollbar-width:thin}
+nav.toc a{white-space:nowrap;text-decoration:none;color:var(--ink);font-size:.86rem;padding:5px 10px;border-radius:6px}
+nav.toc a:hover{background:#e3eeec}
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:16px 0;box-shadow:0 1px 2px rgba(20,50,60,.04)}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media(max-width:760px){.grid2,.grid3{grid-template-columns:1fr}}
+.callout{border-left:4px solid var(--teal);background:var(--soft);border-radius:7px;padding:12px 16px;margin:16px 0}
+.warn{border-left-color:var(--amber);background:#fbf3e6}
+.math{font-family:var(--sans);font-size:1.02rem;background:#f7faf9;border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:10px 0;overflow-x:auto;white-space:nowrap}
+.math.boxed{border:2px solid var(--teal);background:#eef8f4}
+.math .lbl{float:right;color:var(--muted);font:.8rem var(--mono);margin-left:16px}
+var{font-style:italic;font-family:inherit}
+.step{counter-increment:st;position:relative;padding-left:34px;margin:12px 0}
+.step::before{content:counter(st);position:absolute;left:0;top:2px;width:24px;height:24px;border-radius:50%;background:var(--teal);color:#fff;font:600 .8rem/24px var(--mono);text-align:center}
+.steps{counter-reset:st}
+pre,code{font-family:var(--mono);font-size:.88rem}
+pre{background:#13242f;color:#e6efe9;border-radius:10px;padding:14px 16px;overflow-x:auto;line-height:1.55;margin:10px 0}
+pre .hl{background:rgba(64,190,160,.22);display:inline-block;width:100%}
+pre .c{color:#8fb3a8}
+code{background:#edf3f1;border-radius:4px;padding:1px 5px}
+pre code{background:none;padding:0}
+.kpi{font-size:1.55rem;font-weight:750;letter-spacing:-.02em;margin:4px 0;color:var(--teal);font-variant-numeric:tabular-nums}
+.caption,.note{color:var(--muted);font-size:.9rem}
+.note{margin:8px 0}
+.table{overflow-x:auto;border:1px solid var(--line);border-radius:10px;margin:12px 0}
+table{border-collapse:collapse;width:100%;font-size:.9rem;font-variant-numeric:tabular-nums}
+th,td{padding:7px 10px;border-bottom:1px solid #e7eeee;text-align:right;white-space:nowrap}
+th{background:#f1f6f5;font-weight:650;position:sticky;top:0}
+th:first-child,td:first-child{text-align:left}
+tr:last-child td{border-bottom:0}
+td.ok{color:var(--teal);font-weight:650}td.bad{color:var(--red);font-weight:650}
+.controls{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:flex-end}
+label{display:flex;flex-direction:column;font-size:.82rem;color:var(--muted);gap:4px;max-width:100%}
+select{max-width:100%}
+[hidden]{display:none!important}
+section[id]{scroll-margin-top:65px}
+.stale-dim{opacity:.45;transition:opacity .2s}
+input,select{font:inherit;font-size:.95rem;padding:7px 9px;border:1px solid #b9c9ca;border-radius:7px;background:#fff;color:var(--ink);min-width:0}
+input[type=text]{width:100%}
+button{font:600 .92rem var(--sans);padding:9px 16px;border-radius:8px;border:1px solid var(--teal);background:var(--teal);color:#fff;cursor:pointer}
+button.ghost{background:#fff;color:var(--teal)}
+button:disabled{opacity:.5;cursor:default}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #8ad1c3;outline-offset:2px}
+.chart{overflow-x:auto;margin:8px 0}
+.chart svg{display:block;width:100%;min-width:560px;height:auto}
+.chart canvas{display:block;width:100%;min-width:560px;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.84rem;color:var(--muted);margin:4px 0}
+.legend span::before{content:"";display:inline-block;width:16px;height:3px;background:var(--c);vertical-align:middle;margin-right:6px;border-radius:2px}
+.legend span.dash::before{background:repeating-linear-gradient(90deg,var(--c) 0 5px,transparent 5px 8px)}
+.pass{color:var(--teal)}.fail{color:var(--red)}
+.bad{color:var(--red)}
+details summary{cursor:pointer;font-weight:600;color:var(--teal)}
+footer{border-top:1px solid var(--line);margin-top:48px;padding:22px 0 40px;color:var(--muted);font-size:.88rem}
+.tag{display:inline-block;font:600 .74rem var(--mono);color:var(--teal);background:#e3f2ee;border-radius:999px;padding:2px 9px;margin-right:6px}
+@media print{nav.toc,.noPrint,button{display:none!important}body{background:#fff}.panel{break-inside:avoid;box-shadow:none}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+<p class="eyebrow"><a href="HMWK4.html">HMWK 4</a> · Exercise 1</p>
+<h1>Welford’s recurrence formulas for the sum of squares and the variance</h1>
+<p class="lead">Starting from Knuth’s online update of the mean, we derive the recurrences for the sum of squared deviations SS and the variance, implement them in three lines of code and verify them numerically, including the floating-point case where the textbook formula fails.</p>
+</div></header>
+<nav class="toc" aria-label="Sections"><div class="wrap">
+<a href="#knuth">01 · Knuth mean</a><a href="#ss">02 · SS recurrence</a><a href="#var">03 · Variance</a><a href="#code">04 · Code</a><a href="#trace">05 · Step-by-step</a><a href="#stability">06 · Why not Σx² − nx̄²</a><a href="#tests">07 · Tests</a><a href="HMWK4_ex2.html">Ex. 2 →</a>
+</div></nav>
+<main class="wrap">
+
+<section id="setup">
+<h2><small>00</small>Notation</h2>
+<div class="panel">
+<p>Observations <var>x</var><sub>1</sub>, <var>x</var><sub>2</sub>, … arrive one at a time. After <var>n</var> observations define</p>
+<div class="math">x̄<sub>n</sub> = (1/<var>n</var>) Σ<sub>i=1</sub><sup>n</sup> <var>x</var><sub>i</sub> &nbsp;&nbsp;&nbsp; SS<sub>n</sub> = Σ<sub>i=1</sub><sup>n</sup> (<var>x</var><sub>i</sub> − x̄<sub>n</sub>)² &nbsp;&nbsp;&nbsp; <var>s</var><sub>n</sub>² = SS<sub>n</sub> / (<var>n</var> − 1) &nbsp;&nbsp;&nbsp; σ̂<sub>n</sub>² = SS<sub>n</sub> / <var>n</var></div>
+<p class="note"><var>s</var><sub>n</sub>² is the (unbiased) sample variance, σ̂<sub>n</sub>² the population-style (biased) variance. Goal: update x̄, SS and the variance from x̄<sub>n−1</sub>, SS<sub>n−1</sub> and the new value <var>x</var><sub>n</sub> only, without storing or re-reading the previous data (one pass, O(1) memory).</p>
+</div>
+</section>
+
+<section id="knuth">
+<h2><small>01</small>Knuth’s recurrence for the mean</h2>
+<div class="panel steps">
+<p class="step">Separate the last observation from the sum: <span class="math" style="display:block">n x̄<sub>n</sub> = Σ<sub>i=1</sub><sup>n−1</sup> <var>x</var><sub>i</sub> + <var>x</var><sub>n</sub> = (<var>n</var> − 1) x̄<sub>n−1</sub> + <var>x</var><sub>n</sub></span></p>
+<p class="step">Write (<var>n</var> − 1) x̄<sub>n−1</sub> = <var>n</var> x̄<sub>n−1</sub> − x̄<sub>n−1</sub> and divide by <var>n</var>:</p>
+<div class="math boxed"><span class="lbl">(K)</span>x̄<sub>n</sub> = x̄<sub>n−1</sub> + (<var>x</var><sub>n</sub> − x̄<sub>n−1</sub>) / <var>n</var>, &nbsp;&nbsp; x̄<sub>0</sub> = 0</div>
+<p class="note">Interpretation: the new mean moves from the old one by a fraction 1/<var>n</var> of the “surprise” δ<sub>n</sub> = <var>x</var><sub>n</sub> − x̄<sub>n−1</sub>. Two consequences used below:</p>
+<div class="math">x̄<sub>n</sub> − x̄<sub>n−1</sub> = δ<sub>n</sub>/<var>n</var> &nbsp;&nbsp;&nbsp;&nbsp; <var>x</var><sub>n</sub> − x̄<sub>n</sub> = δ<sub>n</sub> − δ<sub>n</sub>/<var>n</var> = δ<sub>n</sub>(<var>n</var> − 1)/<var>n</var> <span class="lbl">(K′)</span></div>
+</div>
+</section>
+
+<section id="ss">
+<h2><small>02</small>Recurrence for the sum of squares SS</h2>
+<div class="panel steps">
+<p>Same idea as Knuth: isolate the last term and express everything through the previous quantities.</p>
+<p class="step">Split the sum and add and subtract x̄<sub>n−1</sub> inside the first <var>n</var> − 1 terms:</p>
+<div class="math">SS<sub>n</sub> = Σ<sub>i=1</sub><sup>n−1</sup> [ (<var>x</var><sub>i</sub> − x̄<sub>n−1</sub>) + (x̄<sub>n−1</sub> − x̄<sub>n</sub>) ]² + (<var>x</var><sub>n</sub> − x̄<sub>n</sub>)²</div>
+<p class="step">Expand the square. The cross term vanishes because deviations from their own mean sum to zero, Σ<sub>i=1</sub><sup>n−1</sup>(<var>x</var><sub>i</sub> − x̄<sub>n−1</sub>) = 0:</p>
+<div class="math">SS<sub>n</sub> = SS<sub>n−1</sub> + (<var>n</var> − 1)(x̄<sub>n−1</sub> − x̄<sub>n</sub>)² + (<var>x</var><sub>n</sub> − x̄<sub>n</sub>)²</div>
+<p class="step">Substitute (K′): x̄<sub>n−1</sub> − x̄<sub>n</sub> = −δ<sub>n</sub>/<var>n</var> and <var>x</var><sub>n</sub> − x̄<sub>n</sub> = δ<sub>n</sub>(<var>n</var> − 1)/<var>n</var>:</p>
+<div class="math">SS<sub>n</sub> = SS<sub>n−1</sub> + δ<sub>n</sub>² [ (<var>n</var> − 1)/<var>n</var>² + (<var>n</var> − 1)²/<var>n</var>² ] = SS<sub>n−1</sub> + δ<sub>n</sub>² (<var>n</var> − 1)/<var>n</var></div>
+<p class="step">Since δ<sub>n</sub>(<var>n</var> − 1)/<var>n</var> = <var>x</var><sub>n</sub> − x̄<sub>n</sub>, the same increment can be written with the old and the new mean:</p>
+<div class="math boxed"><span class="lbl">(W)</span>SS<sub>n</sub> = SS<sub>n−1</sub> + (<var>x</var><sub>n</sub> − x̄<sub>n−1</sub>)(<var>x</var><sub>n</sub> − x̄<sub>n</sub>) = SS<sub>n−1</sub> + ((<var>n</var> − 1)/<var>n</var>)(<var>x</var><sub>n</sub> − x̄<sub>n−1</sub>)², &nbsp;&nbsp; SS<sub>0</sub> = 0</div>
+<p class="note">Check at <var>n</var> = 1: δ<sub>1</sub> = <var>x</var><sub>1</sub>, x̄<sub>1</sub> = <var>x</var><sub>1</sub>, so SS<sub>1</sub> = 0 · … = 0, as it must be. The increment is never negative, so SS can only grow — another property the textbook formula Σ<var>x</var>² − <var>n</var>x̄² does not guarantee in floating point (section 06).</p>
+<details><summary>Alternative derivation from SS<sub>n</sub> = Σ<var>x</var><sub>i</sub>² − <var>n</var> x̄<sub>n</sub>²</summary>
+<div class="math">SS<sub>n</sub> − SS<sub>n−1</sub> = <var>x</var><sub>n</sub>² − <var>n</var> x̄<sub>n</sub>² + (<var>n</var> − 1) x̄<sub>n−1</sub>²</div>
+<p>Use (<var>n</var> − 1) x̄<sub>n−1</sub> = <var>n</var> x̄<sub>n</sub> − <var>x</var><sub>n</sub> (step 1 of Knuth) on one factor of the last term:</p>
+<div class="math">= <var>x</var><sub>n</sub>² − <var>n</var> x̄<sub>n</sub>² + (<var>n</var> x̄<sub>n</sub> − <var>x</var><sub>n</sub>) x̄<sub>n−1</sub> = <var>x</var><sub>n</sub>(<var>x</var><sub>n</sub> − x̄<sub>n−1</sub>) − x̄<sub>n</sub> · <var>n</var>(x̄<sub>n</sub> − x̄<sub>n−1</sub>)</div>
+<p>and <var>n</var>(x̄<sub>n</sub> − x̄<sub>n−1</sub>) = <var>x</var><sub>n</sub> − x̄<sub>n−1</sub>, so the difference is (<var>x</var><sub>n</sub> − x̄<sub>n−1</sub>)(<var>x</var><sub>n</sub> − x̄<sub>n</sub>): the same result (W).</p>
+</details>
+</div>
+</section>
+
+<section id="var">
+<h2><small>03</small>Recurrence for the variance</h2>
+<div class="panel">
+<p>Dividing (W) by the right denominator gives update rules for the variance itself, with exactly the same shape as Knuth’s rule (K): “old value + (new contribution − old value) / count”.</p>
+<p><b>Sample variance</b> (<var>n</var> ≥ 2). From (<var>n</var> − 1)<var>s</var><sub>n</sub>² = (<var>n</var> − 2)<var>s</var><sub>n−1</sub>² + δ<sub>n</sub>(<var>x</var><sub>n</sub> − x̄<sub>n</sub>):</p>
+<div class="math boxed"><span class="lbl">(V)</span><var>s</var><sub>n</sub>² = <var>s</var><sub>n−1</sub>² + [ (<var>x</var><sub>n</sub> − x̄<sub>n−1</sub>)(<var>x</var><sub>n</sub> − x̄<sub>n</sub>) − <var>s</var><sub>n−1</sub>² ] / (<var>n</var> − 1), &nbsp;&nbsp; <var>s</var><sub>1</sub>² := 0 (only as a starting value)</div>
+<p><b>Population-style variance</b> (<var>n</var> ≥ 1). From <var>n</var> σ̂<sub>n</sub>² = (<var>n</var> − 1) σ̂<sub>n−1</sub>² + δ<sub>n</sub>(<var>x</var><sub>n</sub> − x̄<sub>n</sub>):</p>
+<div class="math boxed"><span class="lbl">(V′)</span>σ̂<sub>n</sub>² = σ̂<sub>n−1</sub>² + [ (<var>x</var><sub>n</sub> − x̄<sub>n−1</sub>)(<var>x</var><sub>n</sub> − x̄<sub>n</sub>) − σ̂<sub>n−1</sub>² ] / <var>n</var>, &nbsp;&nbsp; σ̂<sub>0</sub>² = 0</div>
+<p class="note">In (V′) the term δ<sub>n</sub>(<var>x</var><sub>n</sub> − x̄<sub>n</sub>) plays the role of <var>x</var><sub>n</sub> in (K): the variance is the running mean of these “squared-deviation contributions”. In practice it is simpler to keep SS and divide only when the variance is requested, which is what the code does. The sample variance is defined only from <var>n</var> = 2; with a single observation there is no information about spread.</p>
+<div class="table"><table><thead><tr><th>Quantity</th><th>Batch definition</th><th>Online update</th><th>Start</th></tr></thead><tbody>
+<tr><td>Mean</td><td>(1/n) Σ xᵢ</td><td>x̄ₙ = x̄ₙ₋₁ + δₙ/n</td><td>x̄₀ = 0</td></tr>
+<tr><td>Sum of squares</td><td>Σ (xᵢ − x̄ₙ)²</td><td>SSₙ = SSₙ₋₁ + δₙ(xₙ − x̄ₙ)</td><td>SS₀ = 0</td></tr>
+<tr><td>Sample variance</td><td>SSₙ/(n − 1)</td><td>sₙ² = sₙ₋₁² + [δₙ(xₙ − x̄ₙ) − sₙ₋₁²]/(n − 1)</td><td>defined for n ≥ 2</td></tr>
+<tr><td>Population variance</td><td>SSₙ/n</td><td>σ̂ₙ² = σ̂ₙ₋₁² + [δₙ(xₙ − x̄ₙ) − σ̂ₙ₋₁²]/n</td><td>σ̂₀² = 0</td></tr>
+</tbody></table></div>
+</div>
+</section>
+
+<section id="code">
+<h2><small>04</small>Code: the core is three lines</h2>
+<div>
+<div class="panel"><h3>JavaScript (used on these pages)</h3>
+<pre><code><span class="c">// state: n = count, mean = x̄, ss = SS (all start at 0)</span>
+function welfordUpdate(state, x) {
+  state.n += 1;
+<span class="hl">  const delta = x - state.mean;          <span class="c">// δ = x − x̄ₙ₋₁</span></span>
+<span class="hl">  state.mean += delta / state.n;         <span class="c">// (K)</span></span>
+<span class="hl">  state.ss   += delta * (x - state.mean); <span class="c">// (W) uses old and new mean</span></span>
+}
+const sampleVariance = s =&gt; s.n &gt; 1 ? s.ss / (s.n - 1) : NaN;
+const populationVariance = s =&gt; s.n &gt; 0 ? s.ss / s.n : NaN;</code></pre></div>
+<div class="panel"><h3>Python (same logic)</h3>
+<pre><code><span class="c"># one pass, O(1) memory</span>
+n, mean, ss = 0, 0.0, 0.0
+for x in data:
+    n += 1
+<span class="hl">    delta = x - mean</span>
+<span class="hl">    mean += delta / n</span>
+<span class="hl">    ss += delta * (x - mean)</span>
+var_sample = ss / (n - 1) if n &gt; 1 else float("nan")</code></pre>
+<p class="note">The order matters: <code>delta</code> must be computed with the <em>old</em> mean, and the third line must use the <em>new</em> mean. Using the old mean twice would give δ², which over-counts by a factor <var>n</var>/(<var>n</var> − 1).</p></div>
+</div>
+</section>
+
+<section id="trace">
+<h2><small>05</small>Step-by-step trace</h2>
+<div class="panel">
+<div class="controls noPrint"><label style="flex:1;min-width:240px">Data (comma or space separated)<input type="text" id="data" value="4, 7, 13, 16, 9, 2, 11"></label><button id="runTrace">Compute</button><button class="ghost" id="randomData">Random scores 0–10</button></div>
+<p id="traceErr" class="bad" role="alert"></p>
+<div id="traceOut"></div>
+</div>
+</section>
+
+<section id="stability">
+<h2><small>06</small>Why not the “textbook” formula Σx² − n x̄²?</h2>
+<div class="panel">
+<p>Algebraically SS<sub>n</sub> = Σ<var>x</var><sub>i</sub>² − <var>n</var> x̄<sub>n</sub>², and that formula is also one-pass (keep Σ<var>x</var> and Σ<var>x</var>²). In floating point, however, it subtracts two huge, almost equal numbers: when the data have a large mean compared with their spread, the leading digits cancel and only rounding error is left (<em>catastrophic cancellation</em>). Welford only ever accumulates deviations from the current mean, which are small.</p>
+<p>Below, the same four values 4, 7, 13, 16 (exact sample variance 30) are shifted by a constant <var>c</var>. Shifting does not change the variance, so every row should read 30. Everything is computed live in IEEE-754 double precision.</p>
+<div id="stabOut"></div>
+<p class="note">A two-pass algorithm (first the mean, then Σ(<var>x</var> − x̄)²) is also accurate, but it needs the data twice. Welford is numerically stable in one pass: it avoids the cancellation of the textbook formula and in practice stays very close to the two-pass result, although (like any floating-point method) it does not always give identical accuracy or remove every rounding error. One pass is what a streaming setting — e.g. scores arriving one system at a time in Ex. 2 — requires.</p>
+</div>
+</section>
+
+<section id="tests">
+<h2><small>07</small>Self-tests</h2>
+<div class="panel">
+<p class="note">Run automatically when the page opens; each check computes its result in the browser and compares it with an independent method.</p>
+<div id="testOut" role="status"></div>
+</div>
+</section>
+</main>
+<footer><div class="wrap">Ludovico Toto · Statistics · HMWK 4, Ex. 1 · <a href="HMWK4.html">HMWK 4 overview</a> · <a href="HMWK4_ex2.html">Ex. 2 — Sampling mean and variance</a><br>Plain HTML/CSS/JavaScript, no external libraries, no network requests. Prepared with AI assistance; derivations and numeric results are reproduced by the self-tests above.</div></footer>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+// Numbers: up to 6 significant digits, exponent for very large/small magnitudes.
+const fmt = x => !Number.isFinite(x) ? 'N/A' : x === 0 ? '0' : (Math.abs(x) >= 1e7 || Math.abs(x) < 1e-4) ? x.toExponential(4) : Number(x.toPrecision(6)).toLocaleString('en-US', {maximumFractionDigits: 6});
+
+// ---------- Welford: the three-line core ----------
+function welfordUpdate(state, x) {
+  state.n += 1;
+  const delta = x - state.mean;           // δ = x − x̄(n−1)
+  state.mean += delta / state.n;          // (K)
+  state.ss += delta * (x - state.mean);   // (W)
+}
+const newState = () => ({n: 0, mean: 0, ss: 0});
+const sampleVariance = s => s.n > 1 ? s.ss / (s.n - 1) : NaN;
+const populationVariance = s => s.n > 0 ? s.ss / s.n : NaN;
+
+// Variance-form recurrence (V) kept separately, to test it against (W).
+function varianceRecurrence(data) {
+  let mean = 0, v = 0;
+  data.forEach((x, i) => {
+    const n = i + 1, delta = x - mean;
+    mean += delta / n;
+    if (n >= 2) v += (delta * (x - mean) - v) / (n - 1);
+  });
+  return data.length > 1 ? v : NaN;
+}
+// Reference methods used only for checking.
+function twoPass(data) {
+  const n = data.length, mean = data.reduce((a, b) => a + b, 0) / n;
+  const ss = data.reduce((a, x) => a + (x - mean) ** 2, 0);
+  return {mean, ss, variance: n > 1 ? ss / (n - 1) : NaN};
+}
+function naive(data) {
+  let s = 0, q = 0;
+  for (const x of data) { s += x; q += x * x; }
+  const n = data.length, ss = q - s * s / n;
+  return {ss, variance: ss / (n - 1)};
+}
+
+// ---------- Step-by-step trace ----------
+function parseData(text) {
+  const parts = text.split(/[\s,;]+/).filter(Boolean);
+  if (!parts.length) throw new Error('Enter at least one number.');
+  if (parts.length > 200) throw new Error('At most 200 values in the trace.');
+  return parts.map(p => { const v = Number(p); if (!Number.isFinite(v)) throw new Error('“' + p + '” is not a number.'); return v; });
+}
+function renderTrace() {
+  let data;
+  try { data = parseData($('data').value); $('traceErr').textContent = ''; }
+  catch (e) { $('traceErr').textContent = e.message + ' The previous table has been cleared.'; $('traceOut').innerHTML = ''; return; }
+  const st = newState();
+  let rows = '';
+  for (const x of data) {
+    const oldMean = st.mean, oldSS = st.ss;
+    welfordUpdate(st, x);
+    const delta = x - oldMean;
+    rows += '<tr><td>' + st.n + '</td><td>' + fmt(x) + '</td><td>' + fmt(oldMean) + '</td><td>' + fmt(delta) + '</td><td>' + fmt(st.mean) + '</td><td>' + fmt(x - st.mean) + '</td><td>' + fmt(oldSS) + ' + ' + fmt(delta * (x - st.mean)) + '</td><td>' + fmt(st.ss) + '</td><td>' + fmt(sampleVariance(st)) + '</td><td>' + fmt(populationVariance(st)) + '</td></tr>';
+  }
+  const ref = twoPass(data);
+  $('traceOut').innerHTML = '<div class="table"><table><thead><tr><th>n</th><th>xₙ</th><th>x̄ₙ₋₁</th><th>δₙ = xₙ − x̄ₙ₋₁</th><th>x̄ₙ</th><th>xₙ − x̄ₙ</th><th>SSₙ₋₁ + δₙ(xₙ − x̄ₙ)</th><th>SSₙ</th><th>sₙ²</th><th>σ̂ₙ²</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+    '<div class="callout">Two-pass check on the same data: mean ' + fmt(ref.mean) + ', SS ' + fmt(ref.ss) + ', sample variance ' + fmt(ref.variance) + '. Welford: mean ' + fmt(st.mean) + ', SS ' + fmt(st.ss) + ', sample variance ' + fmt(sampleVariance(st)) + '. Variance-form recurrence (V): ' + fmt(varianceRecurrence(data)) + '.</div>';
+}
+$('runTrace').onclick = renderTrace;
+$('data').addEventListener('keydown', e => { if (e.key === 'Enter') renderTrace(); });
+$('randomData').onclick = () => { $('data').value = Array.from({length: 8}, () => Math.floor(Math.random() * 11)).join(', '); renderTrace(); };
+
+// ---------- Numerical stability demo ----------
+function renderStability() {
+  const base = [4, 7, 13, 16], shifts = [0, 1e3, 1e6, 1e8, 1e9, 1e10, 1e12];
+  let rows = '';
+  for (const c of shifts) {
+    const data = base.map(x => x + c), st = newState();
+    data.forEach(x => welfordUpdate(st, x));
+    const nv = naive(data).variance, wv = sampleVariance(st), tv = twoPass(data).variance;
+    const cls = v => Math.abs(v - 30) < 1e-6 ? 'ok' : 'bad';
+    rows += '<tr><td>' + (c === 0 ? '0' : '10<sup>' + Math.log10(c) + '</sup>') + '</td><td class="' + cls(nv) + '">' + fmt(nv) + '</td><td class="' + cls(wv) + '">' + fmt(wv) + '</td><td class="' + cls(tv) + '">' + fmt(tv) + '</td></tr>';
+  }
+  $('stabOut').innerHTML = '<div class="table"><table><thead><tr><th>Shift c</th><th>Textbook Σx² − (Σx)²/n, then /(n−1)</th><th>Welford (3 lines)</th><th>Two-pass reference</th></tr></thead><tbody>' + rows + '</tbody></table></div><p class="note">Green = within 10⁻⁶ of 30, red = wrong. A negative “variance” from the textbook formula is possible and is a clear sign of cancellation.</p>';
+}
+
+// ---------- Self-tests ----------
+function runTests() {
+  const out = [];
+  const near = (a, b, tol = 1e-9) => Math.abs(a - b) <= tol * Math.max(1, Math.abs(a), Math.abs(b));
+  const check = (name, fn) => { let ok = false, msg = ''; try { ok = !!fn(); } catch (e) { msg = ' (' + e.message + ')'; } out.push([ok, name + msg]); };
+  // Small deterministic generator, so the tests do not depend on Math.random.
+  const rng = (seed => () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; })(4);
+  const run = data => { const s = newState(); data.forEach(x => welfordUpdate(s, x)); return s; };
+
+  check('Known example 4, 7, 13, 16 → mean 10, SS 90, s² 30', () => { const s = run([4, 7, 13, 16]); return s.mean === 10 && s.ss === 90 && sampleVariance(s) === 30; });
+  check('Single observation: SS = 0, sample variance undefined', () => { const s = run([5]); return s.ss === 0 && Number.isNaN(sampleVariance(s)) && populationVariance(s) === 0; });
+  check('Welford equals two-pass on 200 random data sets (n = 2…500)', () => {
+    for (let k = 0; k < 200; k++) { const n = 2 + Math.floor(rng() * 499), d = Array.from({length: n}, () => rng() * 20 - 5), a = run(d), b = twoPass(d); if (!near(a.mean, b.mean) || !near(a.ss, b.ss, 1e-9)) return false; } return true; });
+  check('Variance-form recurrence (V) equals SS/(n − 1) from (W)', () => {
+    for (let k = 0; k < 100; k++) { const d = Array.from({length: 2 + Math.floor(rng() * 100)}, () => rng() * 10); if (!near(varianceRecurrence(d), sampleVariance(run(d)), 1e-9)) return false; } return true; });
+  check('Every SS increment δ(x − x̄ₙ) equals ((n − 1)/n)·δ² and is ≥ 0', () => {
+    const s = newState(); for (let i = 0; i < 1000; i++) { const x = rng() * 10, d = x - s.mean, before = s.ss; welfordUpdate(s, x); const inc = s.ss - before; if (inc < 0 || !near(inc, (s.n - 1) / s.n * d * d, 1e-7)) return false; } return true; });
+  check('Shift invariance: data + 10⁹ keeps s² = 30 with Welford', () => near(sampleVariance(run([4, 7, 13, 16].map(x => x + 1e9))), 30, 1e-9));
+  check('Textbook formula really fails at shift 10⁹ (so the demo is not staged)', () => Math.abs(naive([4, 7, 13, 16].map(x => x + 1e9)).variance - 30) > 1);
+  check('Order of observations does not change mean and SS', () => { const d = Array.from({length: 50}, () => rng() * 10), a = run(d), b = run([...d].reverse()); return near(a.mean, b.mean) && near(a.ss, b.ss, 1e-9); });
+
+  const pass = out.filter(r => r[0]).length;
+  $('testOut').innerHTML = '<pre>' + out.map(r => (r[0] ? 'PASS — ' : 'FAIL — ') + esc(r[1])).join('\n') + '\n\n' + pass + ' passed, ' + (out.length - pass) + ' failed.</pre>';
+  return {pass, fail: out.length - pass};
+}
+
+renderTrace();
+renderStability();
+runTests();
+</script>
+</body>
+</html>
